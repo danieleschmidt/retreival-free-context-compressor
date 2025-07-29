@@ -1,0 +1,13 @@
+{
+    "recommendations": [
+        "ms-python.python",
+        "ms-python.black-formatter", 
+        "charliermarsh.ruff",
+        "ms-python.mypy-type-checker",
+        "ms-python.pytest",
+        "editorconfig.editorconfig",
+        "github.vscode-pull-request-github",
+        "eamodio.gitlens",
+        "ms-vscode.vscode-json"
+    ]
+}

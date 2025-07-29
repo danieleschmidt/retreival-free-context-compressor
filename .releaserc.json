@@ -1,0 +1,74 @@
+{
+  "branches": [
+    "main",
+    {"name": "develop", "prerelease": "dev"},
+    {"name": "beta", "prerelease": true}
+  ],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          {"type": "feat", "release": "minor"},
+          {"type": "fix", "release": "patch"},
+          {"type": "perf", "release": "patch"},
+          {"type": "docs", "scope": "README", "release": "patch"},
+          {"type": "refactor", "release": "patch"},
+          {"breaking": true, "release": "major"}
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            {"type": "feat", "section": "🚀 Features"},
+            {"type": "fix", "section": "🐛 Bug Fixes"},
+            {"type": "perf", "section": "⚡ Performance"},
+            {"type": "docs", "section": "📚 Documentation"},
+            {"type": "refactor", "section": "🔧 Refactoring"},
+            {"type": "test", "section": "🧪 Tests"},
+            {"type": "ci", "section": "👷 CI/CD"},
+            {"type": "build", "section": "📦 Build"},
+            {"type": "chore", "hidden": true}
+          ]
+        }
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md",
+        "changelogTitle": "# Changelog\n\nAll notable changes to this project will be documented in this file."
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "python scripts/update_version.py ${nextRelease.version}",
+        "publishCmd": "python scripts/post_release.py ${nextRelease.version}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {"path": "dist/*.tar.gz", "label": "Source Distribution"},
+          {"path": "dist/*.whl", "label": "Python Wheel"},
+          {"path": "sbom.json", "label": "Software Bill of Materials"}
+        ],
+        "discussionCategoryName": "Releases"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md", "pyproject.toml", "src/retrieval_free/__init__.py"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ]
+  ]
+}

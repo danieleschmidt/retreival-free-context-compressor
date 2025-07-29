@@ -1,0 +1,119 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+assignees: ["danieleschmidt"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature! Please provide detailed information about your proposal.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: What problem does this feature solve?
+      placeholder: Describe the use case or pain point...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed feature or enhancement
+      placeholder: |
+        How should this feature work? Include:
+        - API design ideas
+        - Expected behavior
+        - Integration points
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternative solutions or workarounds have you considered?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What type of enhancement is this?
+      options:
+        - Compression Algorithm - New compression methods
+        - Performance - Speed or memory improvements
+        - Integration - Framework compatibility
+        - API - Public interface changes
+        - Documentation - Guides or examples
+        - Tooling - Development or debugging tools
+        - Security - Security enhancements
+        - Other - Please specify in description
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve workflow significantly
+        - High - Critical for major use cases
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Usage Examples
+      description: Show how the feature would be used
+      placeholder: |
+        ```python
+        # Example of how the new feature would work
+        from retrieval_free import NewFeature
+        
+        feature = NewFeature()
+        result = feature.do_something()
+        ```
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Expected Impact
+      description: What benefits would this feature provide?
+      placeholder: |
+        - Performance improvements: X% faster
+        - Memory savings: X% reduction
+        - Developer experience: easier to use
+        - New capabilities: enables Y use case
+
+  - type: checkboxes
+    id: implementation
+    attributes:
+      label: Implementation Willingness
+      description: Are you willing to help implement this feature?
+      options:
+        - label: I can provide a detailed design document
+        - label: I can implement the feature with guidance
+        - label: I can write tests for the feature
+        - label: I can update documentation
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify before submitting
+      options:
+        - label: I have searched existing issues for similar requests
+          required: true
+        - label: This feature aligns with the project's goals
+          required: true
+        - label: I have provided clear use cases and examples
+          required: true

@@ -1,0 +1,159 @@
+name: ⚡ Performance Issue
+description: Report performance problems or regressions
+title: "[Performance]: "
+labels: ["performance", "needs-triage"]
+assignees: ["danieleschmidt"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a performance issue! Detailed information helps us optimize effectively.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Performance Issue Description
+      description: Describe the performance problem you're experiencing
+      placeholder: What operation is slower than expected?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Performance Issue Type
+      description: What type of performance issue is this?
+      options:
+        - Slow compression speed
+        - High memory usage
+        - Slow model loading
+        - GPU utilization issues
+        - Inference latency
+        - Training performance
+        - Memory leaks
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: benchmarks
+    attributes:
+      label: Performance Measurements
+      description: Provide timing, memory usage, or other metrics
+      placeholder: |
+        Current performance:
+        - Operation: compress_document()
+        - Time: 15.2 seconds
+        - Memory: 8.5 GB
+        - GPU utilization: 45%
+        
+        Expected performance:
+        - Time: <5 seconds (based on paper)
+        - Memory: <4 GB
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Code
+      description: Minimal code to reproduce the performance issue
+      placeholder: |
+        ```python
+        import time
+        from retrieval_free import ContextCompressor
+        
+        compressor = ContextCompressor.from_pretrained("rfcc-base-8x")
+        document = "..." * 100000  # Large document
+        
+        start_time = time.time()
+        result = compressor.compress(document)
+        elapsed = time.time() - start_time
+        
+        print(f"Compression took {elapsed:.2f}s")
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Hardware and software configuration
+      placeholder: |
+        Hardware:
+        - CPU: [e.g., Intel i9-12900K, AMD Ryzen 9 5900X, Apple M2]
+        - RAM: [e.g., 32GB DDR4-3200]
+        - GPU: [e.g., RTX 4090 24GB, RTX 3080 10GB, None]
+        - Storage: [e.g., NVMe SSD, SATA SSD, HDD]
+        
+        Software:
+        - OS: [e.g., Ubuntu 22.04, macOS 13.5, Windows 11]
+        - Python: [e.g., 3.11.5]
+        - PyTorch: [e.g., 2.3.0+cu118]
+        - CUDA: [e.g., 11.8]
+        - Package version: [e.g., 0.1.0]
+    validations:
+      required: true
+
+  - type: textarea
+    id: profiling
+    attributes:
+      label: Profiling Results
+      description: Include profiling output if available
+      placeholder: |
+        ```
+        # cProfile output, memory_profiler, or GPU profiling results
+        # Example:
+        ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+            1    0.000    0.000   15.234   15.234 compressor.py:45(compress)
+        ```
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How critical is this performance issue?
+      options:
+        - Low - Minor performance concern
+        - Medium - Noticeable impact on usability
+        - High - Significantly affects production use
+        - Critical - Blocks adoption or causes timeouts
+    validations:
+      required: true
+
+  - type: textarea
+    id: comparison
+    attributes:
+      label: Performance Comparison
+      description: How does this compare to alternatives or previous versions?
+      placeholder: |
+        - Previous version (if applicable): X seconds
+        - Alternative method/library: Y seconds
+        - Paper benchmarks: Z seconds
+
+  - type: checkboxes
+    id: analysis
+    attributes:
+      label: Analysis Attempted
+      description: What analysis have you done?
+      options:
+        - label: Profiled with cProfile or similar
+        - label: Monitored memory usage
+        - label: Checked GPU utilization (if applicable)
+        - label: Tested with different input sizes
+        - label: Compared with baseline methods
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify before submitting
+      options:
+        - label: I have provided measurable performance data
+          required: true
+        - label: I have included reproduction steps
+          required: true
+        - label: I have checked this isn't a configuration issue
+          required: true

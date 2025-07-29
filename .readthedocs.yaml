@@ -1,0 +1,54 @@
+# Read the Docs configuration file for Sphinx-based documentation
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+version: 2
+
+# Set the OS, Python version and other tools you might need
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.11"
+  jobs:
+    pre_create_environment:
+      # Install poetry for dependency management
+      - pip install poetry
+    post_create_environment:
+      # Install the project in editable mode with docs dependencies
+      - pip install -e ".[dev]"
+      - pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints myst-parser
+
+# Build documentation with Sphinx
+sphinx:
+  configuration: docs/conf.py
+  builder: html
+  fail_on_warning: false
+
+# Generate documentation in multiple formats
+formats:
+  - pdf
+  - epub
+
+# Python configuration
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - dev
+
+# Search integration
+search:
+  ranking:
+    # Boost API documentation in search results
+    'api/*': 2
+    # Boost tutorials for beginners
+    'tutorials/*': 1.5
+
+# Subprojects for version management
+subprojects:
+  include: all
+
+# Redirects for moved/renamed pages
+redirects:
+  # Example: redirect old API paths to new structure
+  'old-api.html': 'api/compression.html'

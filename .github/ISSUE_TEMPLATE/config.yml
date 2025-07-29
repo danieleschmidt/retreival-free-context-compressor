@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 General Discussion
+    url: https://github.com/yourusername/retrieval-free-context-compressor/discussions
+    about: For questions, ideas, and general discussion about the project
+  
+  - name: 🔒 Security Vulnerability
+    url: mailto:retrieval-free-security@yourdomain.com
+    about: For reporting security vulnerabilities (private reporting)
+  
+  - name: 📖 Documentation
+    url: https://retrieval-free.readthedocs.io
+    about: Visit our documentation for usage guides and API reference
+  
+  - name: 💾 Discord Community
+    url: https://discord.gg/retrieval-free
+    about: Join our Discord server for real-time help and community support

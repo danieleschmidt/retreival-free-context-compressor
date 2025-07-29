@@ -1,0 +1,96 @@
+# Enhanced Dependabot configuration with security focus
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Python dependencies with enhanced security settings
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "danieleschmidt"
+    assignees:
+      - "danieleschmidt"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+      - "security"
+    # Enhanced security configuration
+    vulnerability-alerts:
+      enabled: true
+    security-updates:
+      enabled: true
+    ignore:
+      # Pin major version updates for ML libraries to avoid breaking changes
+      - dependency-name: "torch"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "transformers"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "scikit-learn"
+        update-types: ["version-update:semver-major"]
+    # Group related updates to reduce PR noise
+    groups:
+      pytorch-ecosystem:
+        patterns:
+          - "torch*"
+          - "torchvision"
+          - "torchaudio"
+      huggingface-ecosystem:
+        patterns:
+          - "transformers"
+          - "datasets"
+          - "tokenizers"
+          - "accelerate"
+      dev-tools:
+        patterns:
+          - "black"
+          - "ruff"
+          - "mypy"
+          - "pytest*"
+          - "pre-commit"
+
+  # Docker dependencies with security scanning
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "danieleschmidt"
+    commit-message:
+      prefix: "docker"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "security"
+
+  # GitHub Actions with supply chain security
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "danieleschmidt"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "security"
+    # Pin actions to specific SHAs for security
+    insecure-external-code-execution: "deny"

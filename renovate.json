@@ -1,0 +1,65 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate configuration for retrieval-free-context-compressor",
+  "extends": [
+    "config:base",
+    ":semanticCommits",
+    ":dependencyDashboard",
+    ":rebaseStalePrs"
+  ],
+  "schedule": ["before 9am on monday"],
+  "timezone": "UTC",
+  "labels": ["dependencies"],
+  "assignees": ["danieleschmidt"],
+  "reviewers": ["danieleschmidt"],
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 2,
+  "python": {
+    "enabled": true
+  },
+  "docker": {
+    "enabled": true,
+    "schedule": ["before 9am on the first day of the month"]
+  },
+  "packageRules": [
+    {
+      "description": "Group PyTorch ecosystem updates",
+      "groupName": "PyTorch ecosystem",
+      "matchPackageNames": ["torch", "torchvision", "torchaudio"],
+      "schedule": ["before 9am on monday"]
+    },
+    {
+      "description": "Group Hugging Face ecosystem updates",
+      "groupName": "Hugging Face ecosystem", 
+      "matchPackageNames": ["transformers", "datasets", "tokenizers"],
+      "schedule": ["before 9am on monday"]
+    },
+    {
+      "description": "Group development tools",
+      "groupName": "Development tools",
+      "matchPackageNames": ["black", "ruff", "mypy", "pytest", "pre-commit"],
+      "schedule": ["before 9am on monday"]
+    },
+    {
+      "description": "Pin major version updates for ML libraries",
+      "matchPackageNames": ["torch", "transformers", "scikit-learn"],
+      "rangeStrategy": "pin",
+      "major": {
+        "enabled": false
+      }
+    },
+    {
+      "description": "Auto-merge minor and patch updates for dev dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"]
+  },
+  "lockFileMaintenance": {
+    "enabled": false
+  }
+}

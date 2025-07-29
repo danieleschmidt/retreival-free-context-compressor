@@ -205,3 +205,71 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Security and sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+*.csr
+*.crt
+*.der
+secrets.yaml
+secrets.yml
+*.secret
+.env.local
+.env.production
+.env.staging
+.env.development
+config/secrets/
+credentials/
+
+# Model files and artifacts
+*.bin
+*.onnx
+*.pkl
+*.joblib
+*.model
+models/
+checkpoints/
+artifacts/
+wandb/
+mlruns/
+
+# Data files (often large and sensitive)
+data/
+datasets/
+*.csv
+*.jsonl
+*.parquet
+*.h5
+*.hdf5
+
+# Temporary and cache directories
+.cache/
+tmp/
+temp/
+logs/
+*.log.*
+
+# IDE and editor specific
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+docker-compose.local.yml

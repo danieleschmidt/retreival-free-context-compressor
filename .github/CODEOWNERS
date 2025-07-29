@@ -1,0 +1,30 @@
+# Global ownership for repository maintenance and security
+* @danieleschmidt
+
+# Core compression algorithms - require ML/AI expertise
+/src/retrieval_free/core/ @danieleschmidt
+/src/retrieval_free/streaming/ @danieleschmidt
+
+# Training and evaluation - require deep learning expertise  
+/src/retrieval_free/training/ @danieleschmidt
+/src/retrieval_free/evaluation/ @danieleschmidt
+
+# Security-critical configurations
+/.github/ @danieleschmidt
+/scripts/security/ @danieleschmidt
+/SECURITY.md @danieleschmidt
+
+# Build and deployment infrastructure
+/Dockerfile @danieleschmidt
+/docker-compose*.yml @danieleschmidt
+/Makefile @danieleschmidt
+/pyproject.toml @danieleschmidt
+
+# Documentation requiring technical review
+/README.md @danieleschmidt
+/DEVELOPMENT.md @danieleschmidt
+/docs/ @danieleschmidt
+
+# Release and versioning
+/CHANGELOG.md @danieleschmidt
+/scripts/release.py @danieleschmidt

@@ -1,0 +1,79 @@
+services:
+  # Development environment
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/workspace
+      - venv:/workspace/.venv
+    environment:
+      - PYTHONPATH=/workspace/src
+      - CUDA_VISIBLE_DEVICES=0
+    working_dir: /workspace
+    command: tail -f /dev/null
+    profiles: [dev]
+
+  # Testing environment
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/workspace
+    environment:
+      - PYTHONPATH=/workspace/src
+    working_dir: /workspace
+    command: pytest tests/ --cov=retrieval_free --cov-report=html
+    profiles: [test]
+
+  # GPU-enabled training environment
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    volumes:
+      - .:/workspace
+      - ./models:/workspace/models
+      - ./data:/workspace/data
+    environment:
+      - PYTHONPATH=/workspace/src
+      - CUDA_VISIBLE_DEVICES=0,1
+    working_dir: /workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    profiles: [train]
+
+  # Benchmarking service
+  benchmark:
+    build:
+      context: .
+      dockerfile: Dockerfile.benchmark
+    volumes:
+      - .:/workspace
+      - ./benchmarks:/workspace/benchmarks
+    environment:
+      - PYTHONPATH=/workspace/src
+    working_dir: /workspace
+    command: python scripts/benchmark_suite.py
+    profiles: [benchmark]
+
+  # Documentation server
+  docs:
+    build:
+      context: .
+      dockerfile: Dockerfile.docs
+    volumes:
+      - ./docs:/workspace/docs
+    ports:
+      - "8000:8000"
+    command: mkdocs serve --dev-addr=0.0.0.0:8000
+    profiles: [docs]
+
+volumes:
+  venv:

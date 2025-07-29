@@ -1,0 +1,95 @@
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "danieleschmidt"
+    assignees:
+      - "danieleschmidt"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    
+    # Group related updates
+    groups:
+      pytorch:
+        patterns:
+          - "torch*"
+          - "torchvision"
+          - "torchaudio"
+      transformers:
+        patterns:
+          - "transformers"
+          - "tokenizers"
+          - "datasets"
+      testing:
+        patterns:
+          - "pytest*"
+          - "coverage"
+          - "mypy"
+          - "ruff"
+          - "black"
+      security:
+        patterns:
+          - "cryptography"
+          - "urllib3"
+          - "requests"
+    
+    # Ignore specific packages that require manual updates
+    ignore:
+      - dependency-name: "torch"
+        # Ignore major version updates for torch (requires careful testing)
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "transformers"
+        # Ignore major version updates for transformers
+        update-types: ["version-update:semver-major"]
+    
+    # Auto-merge configuration for patch updates
+    auto-merge:
+      squash-merge: true
+      delete-branch: true
+      update-types:
+        - "security"
+        - "version-update:semver-patch"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "danieleschmidt"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "docker"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "danieleschmidt"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"

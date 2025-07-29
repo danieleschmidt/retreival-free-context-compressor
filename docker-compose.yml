@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  retrieval-free:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: retrieval-free-compressor
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app/src
+      - RETRIEVAL_FREE_LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data:ro
+      - ./models:/app/models:rw
+      - ./logs:/app/logs:rw
+    healthcheck:
+      test: ["CMD", "python", "-c", "import retrieval_free; print('OK')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - retrieval-free-network
+
+  # Development service with hot reload
+  retrieval-free-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: retrieval-free-dev
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONPATH=/app/src
+      - RETRIEVAL_FREE_LOG_LEVEL=DEBUG
+      - RETRIEVAL_FREE_DEV_MODE=true
+    volumes:
+      - .:/app:rw
+      - dev-cache:/app/.cache
+    command: >
+      bash -c "
+        pip install -e '.[dev]' &&
+        python -m retrieval_free.cli --dev
+      "
+    networks:
+      - retrieval-free-network
+    profiles:
+      - dev
+
+  # GPU-enabled service for training/inference
+  retrieval-free-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: retrieval-free-gpu
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - PYTHONPATH=/app/src
+      - RETRIEVAL_FREE_USE_GPU=true
+    volumes:
+      - ./data:/app/data:ro
+      - ./models:/app/models:rw
+      - gpu-cache:/app/.cache
+    networks:
+      - retrieval-free-network
+    profiles:
+      - gpu
+
+volumes:
+  dev-cache:
+  gpu-cache:
+
+networks:
+  retrieval-free-network:
+    driver: bridge

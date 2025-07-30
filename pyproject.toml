@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "retrieval-free-context-compressor"
-version = "--help"
+version = "0.1.0"
 description = "A transformer plug-in that compresses long documents into dense mega-tokens"
 readme = "README.md"
 license = {text = "MIT"}
@@ -120,7 +120,7 @@ extend-exclude = '''
 '''
 
 [tool.ruff]
-target-version = "--help"
+target-version = "py310"
 line-length = 88
 select = [
     "E",  # pycodestyle errors
@@ -142,7 +142,7 @@ ignore = [
 "tests/**/*" = ["B011"]
 
 [tool.mypy]
-python_version = "--help"
+python_version = "3.10"
 check_untyped_defs = true
 disallow_any_generics = true
 disallow_incomplete_defs = true
@@ -158,7 +158,7 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 module = [
     "torch.*",
-    "transformers.*",
+    "transformers.*",  
     "datasets.*",
     "faiss.*",
     "sentence_transformers.*"

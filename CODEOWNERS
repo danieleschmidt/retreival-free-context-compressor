@@ -1,0 +1,31 @@
+# Code owners for Retrieval-Free Context Compressor
+# Global ownership
+* @danieleschmidt
+
+# Core compression algorithms
+/src/retrieval_free/ @danieleschmidt
+
+# Build and deployment
+/Dockerfile @danieleschmidt
+/docker-compose*.yml @danieleschmidt
+/scripts/build/ @danieleschmidt
+/.github/workflows/ @danieleschmidt
+
+# Documentation
+/docs/ @danieleschmidt
+/README.md @danieleschmidt
+/CONTRIBUTING.md @danieleschmidt
+
+# Configuration files
+/pyproject.toml @danieleschmidt
+/Makefile @danieleschmidt
+/.pre-commit-config.yaml @danieleschmidt
+
+# Security and compliance
+/SECURITY.md @danieleschmidt
+/monitoring/ @danieleschmidt
+/.github/project-metrics.json @danieleschmidt
+
+# Testing infrastructure  
+/tests/ @danieleschmidt
+/benchmarks/ @danieleschmidt

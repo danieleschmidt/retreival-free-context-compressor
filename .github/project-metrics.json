@@ -1,0 +1,164 @@
+{
+  "project": {
+    "name": "Retrieval-Free Context Compressor",
+    "version": "0.1.0",
+    "description": "A transformer plug-in that compresses long documents into dense mega-tokens",
+    "repository": "https://github.com/yourusername/retrieval-free-context-compressor",
+    "license": "MIT",
+    "created": "2025-01-01",
+    "last_updated": "2025-08-01"
+  },
+  "metrics": {
+    "code_quality": {
+      "test_coverage": {
+        "target": 80,
+        "current": 0,
+        "trend": "stable",
+        "measurement_unit": "percentage"
+      },
+      "code_complexity": {
+        "target": 10,
+        "current": 0,
+        "trend": "improving",
+        "measurement_unit": "cyclomatic_complexity"
+      },
+      "technical_debt": {
+        "target": 8,
+        "current": 0,
+        "trend": "stable",
+        "measurement_unit": "hours"
+      }
+    },
+    "performance": {
+      "compression_ratio": {
+        "target": 8.0,
+        "current": 0,
+        "trend": "improving",
+        "measurement_unit": "ratio"
+      },
+      "compression_latency": {
+        "target": 500,
+        "current": 0,
+        "trend": "improving",
+        "measurement_unit": "milliseconds"
+      },
+      "f1_score": {
+        "target": 0.8,
+        "current": 0,
+        "trend": "stable",
+        "measurement_unit": "score"
+      },
+      "memory_usage": {
+        "target": 8,
+        "current": 0,
+        "trend": "stable",
+        "measurement_unit": "gigabytes"
+      }
+    },
+    "security": {
+      "vulnerability_count": {
+        "target": 0,
+        "current": 0,
+        "trend": "stable",
+        "measurement_unit": "count"
+      },
+      "dependency_freshness": {
+        "target": 30,
+        "current": 0,
+        "trend": "stable",
+        "measurement_unit": "days_behind"
+      }
+    },
+    "maintainability": {
+      "documentation_coverage": {
+        "target": 90,
+        "current": 0,
+        "trend": "improving",
+        "measurement_unit": "percentage"
+      },
+      "api_stability": {
+        "target": 99,
+        "current": 0,
+        "trend": "stable",
+        "measurement_unit": "percentage"
+      }
+    },
+    "community": {
+      "github_stars": {
+        "target": 1000,
+        "current": 0,
+        "trend": "growing",
+        "measurement_unit": "count"
+      },
+      "contributors": {
+        "target": 50,
+        "current": 1,
+        "trend": "growing",
+        "measurement_unit": "count"
+      },
+      "issues_resolved": {
+        "target": 95,
+        "current": 0,
+        "trend": "stable",
+        "measurement_unit": "percentage"
+      }
+    },
+    "business": {
+      "adoption_rate": {
+        "target": 100,
+        "current": 0,
+        "trend": "growing",
+        "measurement_unit": "downloads_per_month"
+      },
+      "api_usage": {
+        "target": 10000,
+        "current": 0,
+        "trend": "growing",
+        "measurement_unit": "requests_per_day"
+      }
+    }
+  },
+  "tracking": {
+    "update_frequency": "weekly",
+    "last_collection": "2025-08-01T00:00:00Z",
+    "automation": {
+      "enabled": true,
+      "sources": [
+        "github_api",
+        "codecov",
+        "prometheus",
+        "pypi_stats"
+      ]
+    }
+  },
+  "thresholds": {
+    "critical": {
+      "test_coverage": 60,
+      "vulnerability_count": 5,
+      "compression_ratio": 4.0
+    },
+    "warning": {
+      "test_coverage": 70,
+      "vulnerability_count": 2,
+      "compression_ratio": 6.0
+    }
+  },
+  "alerts": {
+    "enabled": true,
+    "channels": ["slack", "email"],
+    "conditions": [
+      {
+        "metric": "test_coverage",
+        "operator": "less_than",
+        "threshold": 70,
+        "severity": "warning"
+      },
+      {
+        "metric": "vulnerability_count",
+        "operator": "greater_than",
+        "threshold": 0,
+        "severity": "critical"
+      }
+    ]
+  }
+}

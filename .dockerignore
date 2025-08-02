@@ -1,0 +1,83 @@
+# Git
+.git
+.gitignore
+README.md
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+venv
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.pytest_cache
+.mypy_cache
+.ruff_cache
+htmlcov
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+models/
+data/
+logs/
+cache/
+*.log
+*.model
+*.bin
+*.pkl
+
+# Documentation
+docs/_build/
+site/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Security
+.env
+.env.*
+secrets.yaml
+*.key
+*.pem
+*.crt
+
+# Testing
+tests/output/
+performance/results.json
+
+# Node modules (if any)
+node_modules/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE files
+.vscode/settings.json
+.vscode/launch.json

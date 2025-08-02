@@ -4,7 +4,7 @@ A transformer plug-in that compresses long documents into dense "mega-tokens,"
 enabling 256k-token context without external RAG.
 """
 
-__version__ = "--help"
+__version__ = "0.1.0"
 __author__ = "Daniel Schmidt"
 __email__ = "daniel@example.com"
 

@@ -1,0 +1,129 @@
+{
+  "name": "Retrieval-Free Context Compressor Dev Environment",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/git:1": {
+      "ppa": true,
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-python.pylint",
+        "ms-python.mypy",
+        "charliermarsh.ruff",
+        "ms-toolsai.jupyter",
+        "ms-vscode.test-adapter-converter",
+        "littlefoxteam.vscode-python-test-adapter",
+        "github.vscode-github-actions",
+        "github.copilot",
+        "github.copilot-chat",
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens",
+        "davidanson.vscode-markdownlint",
+        "yzhang.markdown-all-in-one",
+        "streetsidesoftware.code-spell-checker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.typeCheckingMode": "basic",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": false,
+        "python.linting.mypyEnabled": true,
+        "python.formatting.provider": "black",
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestArgs": [
+          "tests"
+        ],
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": true
+        },
+        "files.exclude": {
+          "**/.git": true,
+          "**/.DS_Store": true,
+          "**/*.pyc": true,
+          "**/__pycache__": true,
+          "**/.pytest_cache": true,
+          "**/.mypy_cache": true,
+          "**/.coverage": true,
+          "**/htmlcov": true,
+          "**/dist": true,
+          "**/*.egg-info": true
+        },
+        "search.exclude": {
+          "**/node_modules": true,
+          "**/bower_components": true,
+          "**/*.code-search": true,
+          "**/.git": true,
+          "**/.DS_Store": true,
+          "**/*.pyc": true,
+          "**/__pycache__": true,
+          "**/.pytest_cache": true,
+          "**/.mypy_cache": true,
+          "**/htmlcov": true,
+          "**/dist": true,
+          "**/*.egg-info": true
+        },
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "git.autofetch": true,
+        "git.enableSmartCommit": true,
+        "markdown.preview.breaks": true,
+        "markdown.preview.linkify": true
+      }
+    }
+  },
+  "forwardPorts": [
+    8000,
+    8080,
+    3000,
+    5000,
+    9090,
+    3001
+  ],
+  "portsAttributes": {
+    "8000": {
+      "label": "Application Server",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Development Server",
+      "onAutoForward": "notify"
+    },
+    "3000": {
+      "label": "Frontend Dev Server",
+      "onAutoForward": "notify"
+    },
+    "5000": {
+      "label": "Flask/API Server",
+      "onAutoForward": "notify"
+    },
+    "9090": {
+      "label": "Prometheus",
+      "onAutoForward": "ignore"
+    },
+    "3001": {
+      "label": "Grafana",
+      "onAutoForward": "ignore"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspace",
+  "mounts": [
+    "source=${localWorkspaceFolder}/.git,target=/workspace/.git,type=bind,consistency=cached",
+    "source=retrieval-free-cache,target=/home/vscode/.cache,type=volume"
+  ]
+}

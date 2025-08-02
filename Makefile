@@ -1,4 +1,4 @@
-.PHONY: help install install-dev test lint format typecheck clean build docs
+.PHONY: help install install-dev test lint format typecheck clean build docs docker-build docker-build-dev docker-build-gpu docker-build-all docker-test docker-clean compose-up compose-down compose-dev compose-gpu compose-logs release-build release-test security security-docker ci
 .DEFAULT_GOAL := help
 
 help: ## Show this help message
@@ -46,4 +46,58 @@ build: clean ## Build package
 docs: ## Build documentation
 	@echo "Documentation build command to be implemented"
 
-ci: lint typecheck test ## Run all CI checks
+# Docker commands
+docker-build: ## Build Docker image
+	./scripts/build.sh prod
+
+docker-build-dev: ## Build development Docker image
+	./scripts/build.sh dev
+
+docker-build-gpu: ## Build GPU Docker image
+	./scripts/build.sh gpu
+
+docker-build-all: ## Build all Docker images
+	./scripts/build.sh all
+
+docker-test: ## Build and test Docker images
+	./scripts/build.sh test
+
+docker-clean: ## Clean Docker artifacts
+	./scripts/build.sh clean
+
+# Docker Compose commands
+compose-up: ## Start services with docker-compose
+	docker-compose up -d
+
+compose-down: ## Stop services with docker-compose
+	docker-compose down
+
+compose-dev: ## Start development services
+	docker-compose --profile dev up -d
+
+compose-gpu: ## Start GPU services
+	docker-compose --profile gpu up -d
+
+compose-logs: ## Show docker-compose logs
+	docker-compose logs -f
+
+# Release commands
+release-build: clean lint typecheck test docker-build ## Build release artifacts
+	python -m build
+
+release-test: ## Test release artifacts
+	python -m twine check dist/*
+
+# Security commands
+security: ## Run security checks
+	bandit -r src/
+	safety check
+
+security-docker: ## Run Docker security scan
+	@if command -v trivy >/dev/null 2>&1; then \
+		trivy image retrieval-free:prod-latest; \
+	else \
+		echo "Trivy not installed. Install with: curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin"; \
+	fi
+
+ci: lint typecheck test security ## Run all CI checks

@@ -180,3 +180,68 @@ exclude_lines = [
     "if 0:",
     "if __name__ == .__main__.:"
 ]
+
+# Bandit security configuration
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101", "B601"]
+confidence_level = "medium"
+severity_level = "medium"
+
+# Pydocstyle configuration
+[tool.pydocstyle]
+convention = "google"
+add-ignore = ["D100", "D104", "D213", "D203"]
+
+# Ruff additional configuration
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["retrieval_free"]
+force-single-line = false
+lines-after-imports = 2
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+# Pytest-benchmark configuration
+[tool.pytest.ini_options.benchmark]
+only_run_benchmark = false
+sort = "mean"
+compare_fail = ["mean:10%", "stddev:10%"]
+warmup = true
+warmup_iterations = 100000
+calibration_precision = 10
+disable_gc = true
+timer = "time.perf_counter"
+
+# Version configuration
+[tool.bumpversion]
+current_version = "0.1.0"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+search = "{current_version}"
+replace = "{new_version}"
+commit = true
+tag = true
+tag_name = "v{new_version}"
+tag_message = "Bump version: {current_version} → {new_version}"
+allow_dirty = false
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = "version = \"{current_version}\""
+replace = "version = \"{new_version}\""
+
+[[tool.bumpversion.files]]
+filename = "src/retrieval_free/__init__.py"
+search = "__version__ = \"{current_version}\""
+replace = "__version__ = \"{new_version}\""

@@ -1,0 +1,87 @@
+scoring:
+  weights:
+    nascent:
+      wsjf: 0.4
+      ice: 0.3
+      technicalDebt: 0.2
+      security: 0.1
+    developing:
+      wsjf: 0.5
+      ice: 0.2
+      technicalDebt: 0.2
+      security: 0.1
+    maturing:
+      wsjf: 0.6
+      ice: 0.1
+      technicalDebt: 0.2
+      security: 0.1
+    advanced:
+      wsjf: 0.5
+      ice: 0.1
+      technicalDebt: 0.3
+      security: 0.1
+  
+  thresholds:
+    minScore: 10
+    maxRisk: 0.8
+    securityBoost: 2.0
+    complianceBoost: 1.8
+
+discovery:
+  sources:
+    - gitHistory
+    - staticAnalysis
+    - issueTrackers
+    - vulnerabilityDatabases
+    - performanceMonitoring
+    - userFeedback
+  
+  tools:
+    staticAnalysis:
+      - ruff
+      - mypy
+      - bandit
+      - black
+    security:
+      - safety
+      - pip-audit
+      - trivy
+      - bandit
+    performance:
+      - pytest-benchmark
+      - memory-profiler
+    quality:
+      - pytest
+      - coverage
+      - pre-commit
+
+execution:
+  maxConcurrentTasks: 1
+  testRequirements:
+    minCoverage: 80
+    performanceRegression: 5
+  rollbackTriggers:
+    - testFailure
+    - buildFailure
+    - securityViolation
+    - coverageRegression
+
+repository:
+  maturity: "maturing"
+  language: "python"
+  framework: "pytorch"
+  domain: "ml/ai"
+  complexity: "high"
+  
+value_tracking:
+  metrics_file: ".terragon/value-metrics.json"
+  backlog_file: "BACKLOG.md"
+  update_frequency: "on_pr_merge"
+  
+priorities:
+  security_critical: 10.0
+  performance_critical: 8.0
+  maintainability: 6.0
+  documentation: 4.0
+  refactoring: 5.0
+  dependency_updates: 3.0

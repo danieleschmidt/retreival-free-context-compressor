@@ -1,0 +1,130 @@
+name: Performance Benchmarks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 4 * * 0'  # Weekly on Sundays at 4 AM UTC
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+          
+      - name: Run performance tests
+        run: |
+          pytest tests/performance/ -v --benchmark-json=benchmark.json
+          
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          tool: 'pytest'
+          output-file-path: benchmark.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          comment-on-alert: true
+          alert-threshold: '200%'
+          fail-on-alert: false
+          
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results
+          path: benchmark.json
+
+  memory-profiling:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+          pip install memory-profiler psutil
+          
+      - name: Run memory profiling
+        run: |
+          python -c "
+          import psutil
+          import sys
+          from retrieval_free.observability import PerformanceMonitor
+          
+          # Basic memory usage test
+          monitor = PerformanceMonitor()
+          initial_memory = psutil.Process().memory_info().rss / 1024 / 1024
+          print(f'Initial memory usage: {initial_memory:.2f} MB')
+          
+          # Test memory usage during operations
+          with monitor.performance_context('memory_test'):
+              # Simulate typical usage patterns
+              data = list(range(100000))
+              processed = [x * 2 for x in data]
+              
+          final_memory = psutil.Process().memory_info().rss / 1024 / 1024
+          print(f'Final memory usage: {final_memory:.2f} MB')
+          print(f'Memory increase: {final_memory - initial_memory:.2f} MB')
+          
+          # Fail if memory usage is excessive (>500MB increase)
+          if final_memory - initial_memory > 500:
+              sys.exit(1)
+          "
+          
+      - name: Check for memory leaks
+        run: |
+          python -c "
+          import gc
+          import psutil
+          import time
+          
+          # Test for memory leaks
+          initial_objects = len(gc.get_objects())
+          initial_memory = psutil.Process().memory_info().rss
+          
+          # Simulate repeated operations
+          for i in range(100):
+              data = list(range(1000))
+              processed = [x * 2 for x in data]
+              del data, processed
+              if i % 10 == 0:
+                  gc.collect()
+          
+          final_objects = len(gc.get_objects())
+          final_memory = psutil.Process().memory_info().rss
+          
+          print(f'Object count change: {final_objects - initial_objects}')
+          print(f'Memory change: {(final_memory - initial_memory) / 1024 / 1024:.2f} MB')
+          
+          # Warning thresholds
+          if final_objects - initial_objects > 1000:
+              print('WARNING: Potential object leak detected')
+          if (final_memory - initial_memory) / 1024 / 1024 > 100:
+              print('WARNING: Potential memory leak detected')
+          "

@@ -1,0 +1,12 @@
+# Trivy ignore file for security scanning exceptions
+# Add CVE IDs that are false positives or accepted risks
+
+# Example: Ignore specific vulnerabilities in development dependencies
+# CVE-2024-12345
+
+# Ignore vulnerabilities in test files
+tests/
+
+# Ignore vulnerabilities in example code
+examples/
+docs/examples/

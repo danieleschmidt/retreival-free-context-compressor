@@ -158,7 +158,7 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 module = [
     "torch.*",
-    "transformers.*",
+    "transformers.*",  
     "datasets.*",
     "faiss.*",
     "sentence_transformers.*"

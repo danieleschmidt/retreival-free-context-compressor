@@ -4,7 +4,7 @@
 [![PyTorch 2.3+](https://img.shields.io/badge/PyTorch-2.3+-ee4c2c.svg)](https://pytorch.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Paper](https://img.shields.io/badge/Paper-ACL%202025-red.svg)](https://aclanthology.org/2025)
-[![Compression](https://img.shields.io/badge/Compression-8x+-green.svg)](https://github.com/yourusername/retrieval-free-context-compressor)
+[![Compression](https://img.shields.io/badge/Compression-8x+-green.svg)](https://github.com/danieleschmidt/retrieval-free-context-compressor)
 
 A transformer plug-in that compresses long documents into dense "mega-tokens," enabling 256k-token context without external RAG. First implementation of ACL-25's breakthrough compression objective.
 
@@ -59,7 +59,7 @@ bitsandbytes>=0.43.0
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/retrieval-free-context-compressor.git
+git clone https://github.com/danieleschmidt/retrieval-free-context-compressor.git
 cd retrieval-free-context-compressor
 
 # Install package

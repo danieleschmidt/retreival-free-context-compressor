@@ -1,0 +1,10 @@
+# Kubernetes namespace for Retrieval-Free Context Compressor
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: retrieval-free
+  labels:
+    app.kubernetes.io/name: retrieval-free
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: namespace
+    app.kubernetes.io/part-of: retrieval-free-system

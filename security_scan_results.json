@@ -1,0 +1,173 @@
+{
+  "vulnerabilities": [
+    {
+      "type": "pattern_match",
+      "pattern": "shell_injection",
+      "severity": "high",
+      "description": "Shell command injection vulnerability",
+      "file": "scripts/post_release.py",
+      "line": 16,
+      "code": "subprocess.run(cmd, shell=True"
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "eval_usage",
+      "severity": "high",
+      "description": "Use of eval() function can lead to code injection",
+      "file": "scripts/security_scan.py",
+      "line": 69,
+      "code": "eval("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "exec_usage",
+      "severity": "high",
+      "description": "Use of exec() function can lead to code injection",
+      "file": "scripts/security_scan.py",
+      "line": 74,
+      "code": "exec("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "sql_injection",
+      "severity": "high",
+      "description": "Potential SQL injection vulnerability",
+      "file": "scripts/security_scan.py",
+      "line": 97,
+      "code": "SELECT|INSERT|UPDATE|DELETE).*\\+.*%s"
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "eval_usage",
+      "severity": "high",
+      "description": "Use of eval() function can lead to code injection",
+      "file": "tests/test_security.py",
+      "line": 37,
+      "code": "eval("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "eval_usage",
+      "severity": "high",
+      "description": "Use of eval() function can lead to code injection",
+      "file": "tests/test_security.py",
+      "line": 282,
+      "code": "eval("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "exec_usage",
+      "severity": "high",
+      "description": "Use of exec() function can lead to code injection",
+      "file": "tests/test_security.py",
+      "line": 38,
+      "code": "exec("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "eval_usage",
+      "severity": "high",
+      "description": "Use of eval() function can lead to code injection",
+      "file": "src/retrieval_free/optimization.py",
+      "line": 180,
+      "code": "eval("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "eval_usage",
+      "severity": "high",
+      "description": "Use of eval() function can lead to code injection",
+      "file": "src/retrieval_free/optimization.py",
+      "line": 185,
+      "code": "eval("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "eval_usage",
+      "severity": "high",
+      "description": "Use of eval() function can lead to code injection",
+      "file": "src/retrieval_free/security.py",
+      "line": 510,
+      "code": "eval("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "exec_usage",
+      "severity": "high",
+      "description": "Use of exec() function can lead to code injection",
+      "file": "src/retrieval_free/security.py",
+      "line": 511,
+      "code": "exec("
+    }
+  ],
+  "warnings": [
+    {
+      "type": "pattern_match",
+      "pattern": "os_system",
+      "severity": "medium",
+      "description": "Use of os.system() can be unsafe",
+      "file": "scripts/security_scan.py",
+      "line": 84,
+      "code": "os.system("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "os_system",
+      "severity": "medium",
+      "description": "Use of os.system() can be unsafe",
+      "file": "src/retrieval_free/security.py",
+      "line": 513,
+      "code": "os.system("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "pickle_usage",
+      "severity": "medium",
+      "description": "Pickle deserialization can be unsafe with untrusted data",
+      "file": "src/retrieval_free/caching.py",
+      "line": 230,
+      "code": "pickle.dumps("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "pickle_usage",
+      "severity": "medium",
+      "description": "Pickle deserialization can be unsafe with untrusted data",
+      "file": "src/retrieval_free/caching.py",
+      "line": 329,
+      "code": "pickle.load("
+    },
+    {
+      "type": "pattern_match",
+      "pattern": "pickle_usage",
+      "severity": "medium",
+      "description": "Pickle deserialization can be unsafe with untrusted data",
+      "file": "src/retrieval_free/caching.py",
+      "line": 369,
+      "code": "pickle.dump("
+    },
+    {
+      "type": "file_permissions",
+      "severity": "medium",
+      "description": "Sensitive file is world-readable",
+      "file": ".env.example",
+      "permissions": "644"
+    }
+  ],
+  "info": [
+    {
+      "type": "info",
+      "message": "Could not scan pyproject.toml for vulnerabilities (safety tool not available)"
+    }
+  ],
+  "summary": {
+    "vulnerabilities_count": 11,
+    "warnings_count": 6,
+    "info_count": 1,
+    "files_scanned": 108,
+    "scan_date": "2025-08-04T13:50:28.096313",
+    "severity_breakdown": {
+      "high": 11
+    }
+  }
+}

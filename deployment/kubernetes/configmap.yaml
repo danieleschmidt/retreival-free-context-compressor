@@ -1,0 +1,92 @@
+# ConfigMap for Retrieval-Free Context Compressor
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: retrieval-free-config
+  namespace: retrieval-free
+  labels:
+    app.kubernetes.io/name: retrieval-free
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: config
+data:
+  # Application configuration
+  app-config.yaml: |
+    logging:
+      level: INFO
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    
+    compression:
+      default_ratio: 8.0
+      max_input_length: 256000
+      chunk_size: 512
+      chunk_overlap: 64
+    
+    caching:
+      enabled: true
+      memory_cache_size: 1000
+      disk_cache_size_gb: 5.0
+      ttl_hours: 24
+    
+    security:
+      input_validation: true
+      malicious_content_detection: true
+      max_file_size_mb: 100
+    
+    performance:
+      batch_size: 8
+      max_workers: 4
+      gpu_enabled: false
+    
+    monitoring:
+      metrics_enabled: true
+      health_checks_enabled: true
+      prometheus_port: 8080
+  
+  # Logging configuration
+  logging.yaml: |
+    version: 1
+    disable_existing_loggers: false
+    
+    formatters:
+      standard:
+        format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+      json:
+        format: '{"timestamp": "%(asctime)s", "logger": "%(name)s", "level": "%(levelname)s", "message": "%(message)s"}'
+    
+    handlers:
+      console:
+        class: logging.StreamHandler
+        level: INFO
+        formatter: standard
+        stream: ext://sys.stdout
+      
+      file:
+        class: logging.handlers.RotatingFileHandler
+        level: DEBUG
+        formatter: json
+        filename: /app/logs/retrieval-free.log
+        maxBytes: 10485760  # 10MB
+        backupCount: 5
+    
+    loggers:
+      retrieval_free:
+        level: DEBUG
+        handlers: [console, file]
+        propagate: false
+    
+    root:
+      level: INFO
+      handlers: [console]
+  
+  # Prometheus configuration
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    scrape_configs:
+      - job_name: 'retrieval-free'
+        static_configs:
+          - targets: ['localhost:8080']
+        metrics_path: /metrics
+        scrape_interval: 10s

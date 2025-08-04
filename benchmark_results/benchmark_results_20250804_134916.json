@@ -1,0 +1,82 @@
+{
+  "timestamp": 1754315356.3508306,
+  "system_info": {
+    "python_version": "3.10+",
+    "platform": "linux",
+    "cpu_count": 4,
+    "memory_gb": 8.0,
+    "cpu_percent": 50.0
+  },
+  "results": [
+    {
+      "name": "compression_benchmark",
+      "duration_ms": 10.313606262207031,
+      "memory_mb": 0,
+      "throughput_ops_per_sec": 96.95929576683372,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "metadata": {
+        "iterations": 10,
+        "warmup_iterations": 3,
+        "test_data_size": 1000,
+        "parameters": {
+          "compression_ratio": 8.0,
+          "chunk_size": 512,
+          "model": "mock-model"
+        },
+        "duration_stats": {
+          "min_ms": 10.259866714477539,
+          "max_ms": 10.482549667358398,
+          "median_ms": 10.286211967468262,
+          "stddev_ms": 0.06652131867676755
+        }
+      }
+    },
+    {
+      "name": "caching_benchmark",
+      "duration_ms": 0.027363300323486328,
+      "memory_mb": 0,
+      "throughput_ops_per_sec": 36545.299294240656,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "metadata": {
+        "iterations": 100,
+        "warmup_iterations": 10,
+        "test_data_size": 100,
+        "parameters": {
+          "cache_size": 1000,
+          "item_size": 1024
+        },
+        "duration_stats": {
+          "min_ms": 0.018596649169921875,
+          "max_ms": 0.133514404296875,
+          "median_ms": 0.024318695068359375,
+          "stddev_ms": 0.013941824444585358
+        }
+      }
+    },
+    {
+      "name": "batch_processing_benchmark",
+      "duration_ms": 36.9584321975708,
+      "memory_mb": 0,
+      "throughput_ops_per_sec": 27.057424802389964,
+      "success_rate": 1.0,
+      "error_count": 0,
+      "metadata": {
+        "iterations": 20,
+        "warmup_iterations": 5,
+        "test_data_size": 50,
+        "parameters": {
+          "batch_size": 8,
+          "worker_count": 4
+        },
+        "duration_stats": {
+          "min_ms": 36.507606506347656,
+          "max_ms": 37.2929573059082,
+          "median_ms": 36.98599338531494,
+          "stddev_ms": 0.21884053130911663
+        }
+      }
+    }
+  ]
+}

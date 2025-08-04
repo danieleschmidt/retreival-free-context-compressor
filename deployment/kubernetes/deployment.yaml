@@ -1,0 +1,219 @@
+# Kubernetes Deployment for Retrieval-Free Context Compressor
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: retrieval-free
+  namespace: retrieval-free
+  labels:
+    app.kubernetes.io/name: retrieval-free
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: application
+    app.kubernetes.io/part-of: retrieval-free-system
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: retrieval-free
+      app.kubernetes.io/component: application
+  
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: retrieval-free
+        app.kubernetes.io/version: "0.1.0"
+        app.kubernetes.io/component: application
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      
+      # Service account
+      serviceAccountName: retrieval-free
+      
+      # Init containers
+      initContainers:
+        - name: init-permissions
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              chown -R 1000:1000 /app/data /app/cache /app/logs
+              chmod -R 755 /app/data /app/cache /app/logs
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: data-storage
+              mountPath: /app/data
+            - name: cache-storage
+              mountPath: /app/cache
+            - name: logs-storage
+              mountPath: /app/logs
+      
+      # Main containers
+      containers:
+        - name: retrieval-free
+          image: retrieval-free:0.1.0
+          imagePullPolicy: IfNotPresent
+          
+          # Ports
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+          
+          # Environment variables
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: RETRIEVAL_FREE_CONFIG_DIR
+              value: "/app/config"
+            - name: RETRIEVAL_FREE_DATA_DIR
+              value: "/app/data"
+            - name: RETRIEVAL_FREE_CACHE_DIR
+              value: "/app/cache"
+            - name: RETRIEVAL_FREE_LOG_LEVEL
+              value: "INFO"
+            - name: RETRIEVAL_FREE_WORKERS
+              value: "4"
+            - name: RETRIEVAL_FREE_MAX_MEMORY
+              value: "2048"
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          
+          # Resource limits
+          resources:
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+          
+          # Health checks
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          # Startup probe (for slow-starting apps)
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          
+          # Volume mounts
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+            - name: data-storage
+              mountPath: /app/data
+            - name: cache-storage
+              mountPath: /app/cache
+            - name: logs-storage
+              mountPath: /app/logs
+            - name: tmp-volume
+              mountPath: /tmp
+          
+          # Security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      
+      # Volumes
+      volumes:
+        - name: config-volume
+          configMap:
+            name: retrieval-free-config
+        - name: data-storage
+          persistentVolumeClaim:
+            claimName: retrieval-free-data
+        - name: cache-storage
+          persistentVolumeClaim:
+            claimName: retrieval-free-cache
+        - name: logs-storage
+          emptyDir: {}
+        - name: tmp-volume
+          emptyDir: {}
+      
+      # Node selection
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      
+      # Tolerations
+      tolerations:
+        - key: "node-role.kubernetes.io/compute"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      
+      # Affinity rules
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values: ["retrieval-free"]
+                topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              preference:
+                matchExpressions:
+                  - key: node-type
+                    operator: In
+                    values: ["compute"]
+      
+      # Termination grace period
+      terminationGracePeriodSeconds: 30

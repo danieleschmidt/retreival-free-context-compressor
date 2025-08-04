@@ -414,9 +414,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 @software{retrieval_free_context_compressor,
   title={Retrieval-Free Context Compressor: 256k Tokens Without RAG},
-  author={Your Name},
+  author={Daniel Schmidt},
   year={2025},
-  url={https://github.com/yourusername/retrieval-free-context-compressor}
+  url={https://github.com/danieleschmidt/retrieval-free-context-compressor}
 }
 ```
 

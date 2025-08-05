@@ -1,6 +1,12 @@
-"""Command-line interface module."""
+"""Command-line interface for retrieval-free context compressor."""
 
-from .plugins import main
+def main():
+    """Main CLI entry point."""
+    from .plugins import CLIInterface
+    
+    cli = CLIInterface()
+    cli.main()
 
-# Re-export main function for CLI entry point
-__all__ = ["main"]
+
+if __name__ == "__main__":
+    main()

@@ -1,12 +1,37 @@
-```python
 """Framework integration plugins."""
 
 import logging
 import json
 from typing import Any, Dict, List, Optional, Union
-import torch
 
-from .core import AutoCompressor, CompressionResult, MegaToken
+try:
+    import torch
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+
+# Import with fallbacks for missing dependencies
+try:
+    from .core import AutoCompressor
+    from .core.base import MegaToken, CompressionResult
+    HAS_CORE = True
+except ImportError:
+    HAS_CORE = False
+    # Mock classes for when dependencies are missing
+    class MegaToken:
+        def __init__(self, vector, metadata, confidence):
+            self.vector = vector
+            self.metadata = metadata
+            self.confidence = confidence
+    
+    class CompressionResult:
+        def __init__(self, mega_tokens, original_length, compressed_length, compression_ratio, processing_time, metadata):
+            self.mega_tokens = mega_tokens
+            self.original_length = original_length
+            self.compressed_length = compressed_length 
+            self.compression_ratio = compression_ratio
+            self.processing_time = processing_time
+            self.metadata = metadata
 
 logger = logging.getLogger(__name__)
 
@@ -702,4 +727,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```

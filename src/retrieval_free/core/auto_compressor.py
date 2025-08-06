@@ -9,6 +9,25 @@ from pathlib import Path
 from .base import CompressorBase
 from .context_compressor import ContextCompressor
 
+# Import other compressor types
+try:
+    from ..streaming import StreamingCompressor
+    HAS_STREAMING = True
+except ImportError:
+    HAS_STREAMING = False
+
+try:
+    from ..selective import SelectiveCompressor  
+    HAS_SELECTIVE = True
+except ImportError:
+    HAS_SELECTIVE = False
+
+try:
+    from ..multi_doc import MultiDocCompressor
+    HAS_MULTI_DOC = True
+except ImportError:
+    HAS_MULTI_DOC = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -145,10 +164,23 @@ class AutoCompressor:
         # Map class names to actual classes
         class_map = {
             "ContextCompressor": ContextCompressor,
-            # Add other compressor classes as they're implemented
-            "StreamingCompressor": ContextCompressor,  # Fallback for now
-            "SelectiveCompressor": ContextCompressor,  # Fallback for now
         }
+        
+        # Add other compressor classes if available
+        if HAS_STREAMING:
+            class_map["StreamingCompressor"] = StreamingCompressor
+        else:
+            class_map["StreamingCompressor"] = ContextCompressor  # Fallback
+            
+        if HAS_SELECTIVE:
+            class_map["SelectiveCompressor"] = SelectiveCompressor
+        else:
+            class_map["SelectiveCompressor"] = ContextCompressor  # Fallback
+            
+        if HAS_MULTI_DOC:
+            class_map["MultiDocCompressor"] = MultiDocCompressor
+        else:
+            class_map["MultiDocCompressor"] = ContextCompressor  # Fallback
         
         if class_name not in class_map:
             raise ValueError(f"Unknown compressor class: {class_name}")
@@ -277,9 +309,23 @@ class AutoCompressor:
         """
         type_map = {
             "context": ContextCompressor,
-            "streaming": ContextCompressor,  # Fallback for now
-            "selective": ContextCompressor,  # Fallback for now
         }
+        
+        # Add other types if available
+        if HAS_STREAMING:
+            type_map["streaming"] = StreamingCompressor
+        else:
+            type_map["streaming"] = ContextCompressor  # Fallback
+            
+        if HAS_SELECTIVE:
+            type_map["selective"] = SelectiveCompressor
+        else:
+            type_map["selective"] = ContextCompressor  # Fallback
+            
+        if HAS_MULTI_DOC:
+            type_map["multi_doc"] = MultiDocCompressor
+        else:
+            type_map["multi_doc"] = ContextCompressor  # Fallback
         
         if compressor_type not in type_map:
             available = list(type_map.keys())

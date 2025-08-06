@@ -212,16 +212,7 @@ mark-parentheses = false
 [tool.ruff.lint.mccabe]
 max-complexity = 10
 
-# Pytest-benchmark configuration
-[tool.pytest.ini_options.benchmark]
-only_run_benchmark = false
-sort = "mean"
-compare_fail = ["mean:10%", "stddev:10%"]
-warmup = true
-warmup_iterations = 100000
-calibration_precision = 10
-disable_gc = true
-timer = "time.perf_counter"
+# Pytest-benchmark configuration (removed - moved to separate config)
 
 # Version configuration
 [tool.bumpversion]

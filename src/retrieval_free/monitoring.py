@@ -1,15 +1,23 @@
-"""Monitoring and health check utilities."""
+"""Enhanced monitoring, distributed tracing, and alerting system."""
 
 import time
 import logging
 import json
 import threading
-from typing import Dict, Any, List, Optional, Callable
-from dataclasses import dataclass, asdict
+import uuid
+import queue
+from typing import Dict, Any, List, Optional, Callable, Union
+from dataclasses import dataclass, asdict, field
 from collections import deque, defaultdict
 import statistics
 import psutil
 import torch
+from datetime import datetime, timedelta
+from contextlib import contextmanager
+from functools import wraps
+import socket
+import os
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +35,124 @@ class HealthStatus:
 
 
 @dataclass
+class Span:
+    """Distributed tracing span."""
+    
+    trace_id: str
+    span_id: str
+    parent_span_id: Optional[str]
+    operation_name: str
+    start_time: float
+    end_time: Optional[float] = None
+    duration_ms: Optional[float] = None
+    tags: Dict[str, Any] = field(default_factory=dict)
+    logs: List[Dict[str, Any]] = field(default_factory=list)
+    status: str = "ok"  # ok, error, timeout
+    
+    def finish(self) -> None:
+        """Finish the span."""
+        if self.end_time is None:
+            self.end_time = time.time()
+            self.duration_ms = (self.end_time - self.start_time) * 1000
+    
+    def log(self, message: str, level: str = "info", **fields) -> None:
+        """Add log entry to span."""
+        log_entry = {
+            "timestamp": time.time(),
+            "level": level,
+            "message": message,
+            **fields
+        }
+        self.logs.append(log_entry)
+    
+    def set_tag(self, key: str, value: Any) -> None:
+        """Set tag on span."""
+        self.tags[key] = value
+    
+    def set_error(self, error: Exception) -> None:
+        """Mark span as error."""
+        self.status = "error"
+        self.set_tag("error", True)
+        self.set_tag("error.type", type(error).__name__)
+        self.set_tag("error.message", str(error))
+
+
+@dataclass
+class Trace:
+    """Complete trace with multiple spans."""
+    
+    trace_id: str
+    spans: List[Span] = field(default_factory=list)
+    start_time: float = field(default_factory=time.time)
+    end_time: Optional[float] = None
+    duration_ms: Optional[float] = None
+    root_span: Optional[Span] = None
+    
+    def add_span(self, span: Span) -> None:
+        """Add span to trace."""
+        self.spans.append(span)
+        if self.root_span is None or span.parent_span_id is None:
+            self.root_span = span
+    
+    def finish(self) -> None:
+        """Finish the trace."""
+        if self.end_time is None:
+            self.end_time = time.time()
+            self.duration_ms = (self.end_time - self.start_time) * 1000
+
+
+@dataclass
+class Alert:
+    """Alert definition."""
+    
+    alert_id: str
+    name: str
+    metric_name: str
+    operator: str  # ">", "<", ">=", "<=", "==", "!="
+    threshold: float
+    window_minutes: int = 5
+    severity: str = "warning"  # info, warning, critical
+    description: str = ""
+    enabled: bool = True
+    created_at: datetime = field(default_factory=datetime.now)
+    
+    def evaluate(self, value: float) -> bool:
+        """Evaluate if alert should fire."""
+        if not self.enabled:
+            return False
+            
+        if self.operator == ">":
+            return value > self.threshold
+        elif self.operator == ">=":
+            return value >= self.threshold
+        elif self.operator == "<":
+            return value < self.threshold
+        elif self.operator == "<=":
+            return value <= self.threshold
+        elif self.operator == "==":
+            return value == self.threshold
+        elif self.operator == "!=":
+            return value != self.threshold
+        
+        return False
+
+
+@dataclass
+class AlertInstance:
+    """Active alert instance."""
+    
+    alert_id: str
+    alert_name: str
+    metric_name: str
+    value: float
+    threshold: float
+    severity: str
+    fired_at: datetime = field(default_factory=datetime.now)
+    resolved_at: Optional[datetime] = None
+    is_resolved: bool = False
+
+
+@dataclass
 class PerformanceMetrics:
     """Performance metrics snapshot."""
     
@@ -38,6 +164,13 @@ class PerformanceMetrics:
     input_tokens: int
     output_tokens: int
     throughput_tps: float  # tokens per second
+    error_count: int = 0
+    success_count: int = 0
+    trace_id: Optional[str] = None
+    span_id: Optional[str] = None
+    user_id: Optional[str] = None
+    model_name: Optional[str] = None
+    operation: Optional[str] = None
 
 
 class MetricsCollector:

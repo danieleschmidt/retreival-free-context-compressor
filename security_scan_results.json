@@ -1,173 +1,1166 @@
 {
-  "vulnerabilities": [
-    {
-      "type": "pattern_match",
-      "pattern": "shell_injection",
-      "severity": "high",
-      "description": "Shell command injection vulnerability",
-      "file": "scripts/post_release.py",
-      "line": 16,
-      "code": "subprocess.run(cmd, shell=True"
+  "errors": [],
+  "generated_at": "2025-08-06T14:47:21Z",
+  "metrics": {
+    "_totals": {
+      "CONFIDENCE.HIGH": 32,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 3,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 7,
+      "SEVERITY.LOW": 16,
+      "SEVERITY.MEDIUM": 12,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 14481,
+      "nosec": 0,
+      "skipped_tests": 0
     },
-    {
-      "type": "pattern_match",
-      "pattern": "eval_usage",
-      "severity": "high",
-      "description": "Use of eval() function can lead to code injection",
-      "file": "scripts/security_scan.py",
-      "line": 69,
-      "code": "eval("
+    "src/retrieval_free/__init__.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 121,
+      "nosec": 0,
+      "skipped_tests": 0
     },
-    {
-      "type": "pattern_match",
-      "pattern": "exec_usage",
-      "severity": "high",
-      "description": "Use of exec() function can lead to code injection",
-      "file": "scripts/security_scan.py",
-      "line": 74,
-      "code": "exec("
+    "src/retrieval_free/adaptive_compression.py": {
+      "CONFIDENCE.HIGH": 1,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 1,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 785,
+      "nosec": 0,
+      "skipped_tests": 0
     },
-    {
-      "type": "pattern_match",
-      "pattern": "sql_injection",
-      "severity": "high",
-      "description": "Potential SQL injection vulnerability",
-      "file": "scripts/security_scan.py",
-      "line": 97,
-      "code": "SELECT|INSERT|UPDATE|DELETE).*\\+.*%s"
+    "src/retrieval_free/async_api.py": {
+      "CONFIDENCE.HIGH": 1,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 3,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 1,
+      "SEVERITY.MEDIUM": 3,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 646,
+      "nosec": 0,
+      "skipped_tests": 0
     },
-    {
-      "type": "pattern_match",
-      "pattern": "eval_usage",
-      "severity": "high",
-      "description": "Use of eval() function can lead to code injection",
-      "file": "tests/test_security.py",
-      "line": 37,
-      "code": "eval("
+    "src/retrieval_free/caching.py": {
+      "CONFIDENCE.HIGH": 3,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 1,
+      "SEVERITY.LOW": 1,
+      "SEVERITY.MEDIUM": 1,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 399,
+      "nosec": 0,
+      "skipped_tests": 0
     },
-    {
-      "type": "pattern_match",
-      "pattern": "eval_usage",
-      "severity": "high",
-      "description": "Use of eval() function can lead to code injection",
-      "file": "tests/test_security.py",
-      "line": 282,
-      "code": "eval("
+    "src/retrieval_free/cli.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 8,
+      "nosec": 0,
+      "skipped_tests": 0
     },
-    {
-      "type": "pattern_match",
-      "pattern": "exec_usage",
-      "severity": "high",
-      "description": "Use of exec() function can lead to code injection",
-      "file": "tests/test_security.py",
-      "line": 38,
-      "code": "exec("
+    "src/retrieval_free/compliance.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 410,
+      "nosec": 0,
+      "skipped_tests": 0
     },
-    {
-      "type": "pattern_match",
-      "pattern": "eval_usage",
-      "severity": "high",
-      "description": "Use of eval() function can lead to code injection",
-      "file": "src/retrieval_free/optimization.py",
-      "line": 180,
-      "code": "eval("
+    "src/retrieval_free/configuration.py": {
+      "CONFIDENCE.HIGH": 2,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 1,
+      "SEVERITY.LOW": 1,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 622,
+      "nosec": 0,
+      "skipped_tests": 0
     },
-    {
-      "type": "pattern_match",
-      "pattern": "eval_usage",
-      "severity": "high",
-      "description": "Use of eval() function can lead to code injection",
-      "file": "src/retrieval_free/optimization.py",
-      "line": 185,
-      "code": "eval("
+    "src/retrieval_free/core.py": {
+      "CONFIDENCE.HIGH": 2,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 2,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 347,
+      "nosec": 0,
+      "skipped_tests": 0
     },
-    {
-      "type": "pattern_match",
-      "pattern": "eval_usage",
-      "severity": "high",
-      "description": "Use of eval() function can lead to code injection",
-      "file": "src/retrieval_free/security.py",
-      "line": 510,
-      "code": "eval("
+    "src/retrieval_free/core/__init__.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 9,
+      "nosec": 0,
+      "skipped_tests": 0
     },
-    {
-      "type": "pattern_match",
-      "pattern": "exec_usage",
-      "severity": "high",
-      "description": "Use of exec() function can lead to code injection",
-      "file": "src/retrieval_free/security.py",
-      "line": 511,
-      "code": "exec("
+    "src/retrieval_free/core/auto_compressor.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 262,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/core/base.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 137,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/core/context_compressor.py": {
+      "CONFIDENCE.HIGH": 2,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 2,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 379,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/distributed_cache.py": {
+      "CONFIDENCE.HIGH": 3,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 1,
+      "SEVERITY.MEDIUM": 2,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 668,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/enterprise_integration.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 501,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/error_handling.py": {
+      "CONFIDENCE.HIGH": 1,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 1,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 538,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/exceptions.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 246,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/i18n.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 331,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/monitoring.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 552,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/monitoring_enhanced.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 718,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/multi_doc.py": {
+      "CONFIDENCE.HIGH": 1,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 1,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 600,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/multi_region.py": {
+      "CONFIDENCE.HIGH": 2,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 2,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 578,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/observability.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 209,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/optimization.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 388,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/performance_monitor.py": {
+      "CONFIDENCE.HIGH": 1,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 1,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 695,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/platform.py": {
+      "CONFIDENCE.HIGH": 2,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 1,
+      "SEVERITY.LOW": 1,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 424,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/plugins.py": {
+      "CONFIDENCE.HIGH": 2,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 2,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 550,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/quality_assurance.py": {
+      "CONFIDENCE.HIGH": 3,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 3,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 790,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/scaling.py": {
+      "CONFIDENCE.HIGH": 1,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 1,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 646,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/security.py": {
+      "CONFIDENCE.HIGH": 5,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 2,
+      "SEVERITY.LOW": 3,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 719,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/selective.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 470,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/streaming.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 366,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "src/retrieval_free/validation.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 367,
+      "nosec": 0,
+      "skipped_tests": 0
     }
-  ],
-  "warnings": [
+  },
+  "results": [
     {
-      "type": "pattern_match",
-      "pattern": "os_system",
-      "severity": "medium",
-      "description": "Use of os.system() can be unsafe",
-      "file": "scripts/security_scan.py",
-      "line": 84,
-      "code": "os.system("
+      "code": "1030         # Create checksum for incremental updates\n1031         text_hash = hashlib.md5(combined_text.encode()).hexdigest()\n1032         self.stream_state.checksum = text_hash\n",
+      "col_offset": 20,
+      "end_col_offset": 55,
+      "filename": "src/retrieval_free/adaptive_compression.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 327,
+        "link": "https://cwe.mitre.org/data/definitions/327.html"
+      },
+      "issue_severity": "HIGH",
+      "issue_text": "Use of weak MD5 hash for security. Consider usedforsecurity=False",
+      "line_number": 1031,
+      "line_range": [
+        1031
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b324_hashlib.html",
+      "test_id": "B324",
+      "test_name": "hashlib"
     },
     {
-      "type": "pattern_match",
-      "pattern": "os_system",
-      "severity": "medium",
-      "description": "Use of os.system() can be unsafe",
-      "file": "src/retrieval_free/security.py",
-      "line": 513,
-      "code": "os.system("
+      "code": "411             gpu_available = torch.cuda.is_available()\n412         except:\n413             pass\n414         \n",
+      "col_offset": 8,
+      "end_col_offset": 16,
+      "filename": "src/retrieval_free/async_api.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 703,
+        "link": "https://cwe.mitre.org/data/definitions/703.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Try, Except, Pass detected.",
+      "line_number": 412,
+      "line_range": [
+        412,
+        413
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html",
+      "test_id": "B110",
+      "test_name": "try_except_pass"
     },
     {
-      "type": "pattern_match",
-      "pattern": "pickle_usage",
-      "severity": "medium",
-      "description": "Pickle deserialization can be unsafe with untrusted data",
-      "file": "src/retrieval_free/caching.py",
-      "line": 230,
-      "code": "pickle.dumps("
+      "code": "755     cache_config: Optional[Dict[str, Any]] = None,\n756     host: str = \"0.0.0.0\",\n757     port: int = 8000,\n758     **kwargs\n759 ) -> AsyncCompressionAPI:\n760     \"\"\"Create and configure API server.\"\"\"\n761     \n",
+      "col_offset": 16,
+      "end_col_offset": 25,
+      "filename": "src/retrieval_free/async_api.py",
+      "issue_confidence": "MEDIUM",
+      "issue_cwe": {
+        "id": 605,
+        "link": "https://cwe.mitre.org/data/definitions/605.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Possible binding to all interfaces.",
+      "line_number": 756,
+      "line_range": [
+        754,
+        755,
+        756,
+        757,
+        758
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b104_hardcoded_bind_all_interfaces.html",
+      "test_id": "B104",
+      "test_name": "hardcoded_bind_all_interfaces"
     },
     {
-      "type": "pattern_match",
-      "pattern": "pickle_usage",
-      "severity": "medium",
-      "description": "Pickle deserialization can be unsafe with untrusted data",
-      "file": "src/retrieval_free/caching.py",
-      "line": 329,
-      "code": "pickle.load("
+      "code": "779     api: AsyncCompressionAPI,\n780     host: str = \"0.0.0.0\",\n781     port: int = 8000,\n782     workers: int = 1,\n783     **uvicorn_kwargs\n784 ):\n785     \"\"\"Run the API server with uvicorn.\"\"\"\n",
+      "col_offset": 16,
+      "end_col_offset": 25,
+      "filename": "src/retrieval_free/async_api.py",
+      "issue_confidence": "MEDIUM",
+      "issue_cwe": {
+        "id": 605,
+        "link": "https://cwe.mitre.org/data/definitions/605.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Possible binding to all interfaces.",
+      "line_number": 780,
+      "line_range": [
+        779,
+        780,
+        781,
+        782,
+        783
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b104_hardcoded_bind_all_interfaces.html",
+      "test_id": "B104",
+      "test_name": "hardcoded_bind_all_interfaces"
     },
     {
-      "type": "pattern_match",
-      "pattern": "pickle_usage",
-      "severity": "medium",
-      "description": "Pickle deserialization can be unsafe with untrusted data",
-      "file": "src/retrieval_free/caching.py",
-      "line": 369,
-      "code": "pickle.dump("
+      "code": "808     parser = argparse.ArgumentParser(description=\"Run Async Compression API Server\")\n809     parser.add_argument(\"--host\", default=\"0.0.0.0\", help=\"Host to bind to\")\n810     parser.add_argument(\"--port\", type=int, default=8000, help=\"Port to bind to\")\n",
+      "col_offset": 42,
+      "end_col_offset": 51,
+      "filename": "src/retrieval_free/async_api.py",
+      "issue_confidence": "MEDIUM",
+      "issue_cwe": {
+        "id": 605,
+        "link": "https://cwe.mitre.org/data/definitions/605.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Possible binding to all interfaces.",
+      "line_number": 809,
+      "line_range": [
+        809
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b104_hardcoded_bind_all_interfaces.html",
+      "test_id": "B104",
+      "test_name": "hardcoded_bind_all_interfaces"
     },
     {
-      "type": "file_permissions",
-      "severity": "medium",
-      "description": "Sensitive file is world-readable",
-      "file": ".env.example",
-      "permissions": "644"
+      "code": "4 import json\n5 import pickle\n6 import time\n",
+      "col_offset": 0,
+      "end_col_offset": 13,
+      "filename": "src/retrieval_free/caching.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 502,
+        "link": "https://cwe.mitre.org/data/definitions/502.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Consider possible security implications associated with pickle module.",
+      "line_number": 5,
+      "line_range": [
+        5
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_imports.html#b403-import-pickle",
+      "test_id": "B403",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "44     # Create final hash\n45     return hashlib.md5(sorted_key.encode('utf-8')).hexdigest()\n46 \n",
+      "col_offset": 11,
+      "end_col_offset": 50,
+      "filename": "src/retrieval_free/caching.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 327,
+        "link": "https://cwe.mitre.org/data/definitions/327.html"
+      },
+      "issue_severity": "HIGH",
+      "issue_text": "Use of weak MD5 hash for security. Consider usedforsecurity=False",
+      "line_number": 45,
+      "line_range": [
+        45
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b324_hashlib.html",
+      "test_id": "B324",
+      "test_name": "hashlib"
+    },
+    {
+      "code": "240                 with open(cache_file, 'rb') as f:\n241                     value = pickle.load(f)\n242                 \n",
+      "col_offset": 28,
+      "end_col_offset": 42,
+      "filename": "src/retrieval_free/caching.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 502,
+        "link": "https://cwe.mitre.org/data/definitions/502.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue.",
+      "line_number": 241,
+      "line_range": [
+        241
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b301-pickle",
+      "test_id": "B301",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "576                     # Random for anonymous users\n577                     return random.random() * 100 < toggle.percentage\n578             elif toggle.strategy == FeatureToggleStrategy.USER_LIST:\n",
+      "col_offset": 27,
+      "end_col_offset": 42,
+      "filename": "src/retrieval_free/configuration.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 330,
+        "link": "https://cwe.mitre.org/data/definitions/330.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+      "line_number": 577,
+      "line_range": [
+        577
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random",
+      "test_id": "B311",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "721         hash_input = f\"{user_id}:{salt}\".encode()\n722         hash_value = hashlib.md5(hash_input).hexdigest()\n723         # Convert first 8 hex chars to int, then to percentage\n",
+      "col_offset": 21,
+      "end_col_offset": 44,
+      "filename": "src/retrieval_free/configuration.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 327,
+        "link": "https://cwe.mitre.org/data/definitions/327.html"
+      },
+      "issue_severity": "HIGH",
+      "issue_text": "Use of weak MD5 hash for security. Consider usedforsecurity=False",
+      "line_number": 722,
+      "line_range": [
+        722
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b324_hashlib.html",
+      "test_id": "B324",
+      "test_name": "hashlib"
+    },
+    {
+      "code": "125             try:\n126                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)\n127                 self.model = AutoModel.from_pretrained(self.model_name).to(self.device)\n",
+      "col_offset": 33,
+      "end_col_offset": 79,
+      "filename": "src/retrieval_free/core.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 494,
+        "link": "https://cwe.mitre.org/data/definitions/494.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Unsafe Hugging Face Hub download without revision pinning in from_pretrained()",
+      "line_number": 126,
+      "line_range": [
+        126
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b615_huggingface_unsafe_download.html",
+      "test_id": "B615",
+      "test_name": "huggingface_unsafe_download"
+    },
+    {
+      "code": "126                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)\n127                 self.model = AutoModel.from_pretrained(self.model_name).to(self.device)\n128                 self.model_type = \"transformer\"\n",
+      "col_offset": 29,
+      "end_col_offset": 71,
+      "filename": "src/retrieval_free/core.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 494,
+        "link": "https://cwe.mitre.org/data/definitions/494.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Unsafe Hugging Face Hub download without revision pinning in from_pretrained()",
+      "line_number": 127,
+      "line_range": [
+        127
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b615_huggingface_unsafe_download.html",
+      "test_id": "B615",
+      "test_name": "huggingface_unsafe_download"
+    },
+    {
+      "code": "106             # Load base sentence transformer\n107             self._tokenizer = AutoTokenizer.from_pretrained(\n108                 \"sentence-transformers/all-MiniLM-L6-v2\"\n109             )\n110             self._encoder_model = AutoModel.from_pretrained(\n",
+      "col_offset": 30,
+      "end_col_offset": 13,
+      "filename": "src/retrieval_free/core/context_compressor.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 494,
+        "link": "https://cwe.mitre.org/data/definitions/494.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Unsafe Hugging Face Hub download without revision pinning in from_pretrained()",
+      "line_number": 107,
+      "line_range": [
+        107,
+        108,
+        109
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b615_huggingface_unsafe_download.html",
+      "test_id": "B615",
+      "test_name": "huggingface_unsafe_download"
+    },
+    {
+      "code": "109             )\n110             self._encoder_model = AutoModel.from_pretrained(\n111                 \"sentence-transformers/all-MiniLM-L6-v2\"\n112             ).to(self.device)\n113             \n",
+      "col_offset": 34,
+      "end_col_offset": 13,
+      "filename": "src/retrieval_free/core/context_compressor.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 494,
+        "link": "https://cwe.mitre.org/data/definitions/494.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Unsafe Hugging Face Hub download without revision pinning in from_pretrained()",
+      "line_number": 110,
+      "line_range": [
+        110,
+        111,
+        112
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b615_huggingface_unsafe_download.html",
+      "test_id": "B615",
+      "test_name": "huggingface_unsafe_download"
+    },
+    {
+      "code": "22 from pathlib import Path\n23 import pickle\n24 import uuid\n",
+      "col_offset": 0,
+      "end_col_offset": 13,
+      "filename": "src/retrieval_free/distributed_cache.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 502,
+        "link": "https://cwe.mitre.org/data/definitions/502.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Consider possible security implications associated with pickle module.",
+      "line_number": 23,
+      "line_range": [
+        23
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_imports.html#b403-import-pickle",
+      "test_id": "B403",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "198         \n199         value = pickle.loads(data)\n200         \n",
+      "col_offset": 16,
+      "end_col_offset": 34,
+      "filename": "src/retrieval_free/distributed_cache.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 502,
+        "link": "https://cwe.mitre.org/data/definitions/502.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue.",
+      "line_number": 199,
+      "line_range": [
+        199
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b301-pickle",
+      "test_id": "B301",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "416             # Deserialize\n417             value = pickle.loads(data)\n418             \n",
+      "col_offset": 20,
+      "end_col_offset": 38,
+      "filename": "src/retrieval_free/distributed_cache.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 502,
+        "link": "https://cwe.mitre.org/data/definitions/502.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue.",
+      "line_number": 417,
+      "line_range": [
+        417
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b301-pickle",
+      "test_id": "B301",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "264             import random\n265             delay = delay * (0.5 + random.random() * 0.5)\n266         \n",
+      "col_offset": 35,
+      "end_col_offset": 50,
+      "filename": "src/retrieval_free/error_handling.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 330,
+        "link": "https://cwe.mitre.org/data/definitions/330.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+      "line_number": 265,
+      "line_range": [
+        265
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random",
+      "test_id": "B311",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "70         \"\"\"Get content hash for caching.\"\"\"\n71         return hashlib.md5(self.content.encode('utf-8')).hexdigest()\n72 \n",
+      "col_offset": 15,
+      "end_col_offset": 56,
+      "filename": "src/retrieval_free/multi_doc.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 327,
+        "link": "https://cwe.mitre.org/data/definitions/327.html"
+      },
+      "issue_severity": "HIGH",
+      "issue_text": "Use of weak MD5 hash for security. Consider usedforsecurity=False",
+      "line_number": 71,
+      "line_range": [
+        71
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b324_hashlib.html",
+      "test_id": "B324",
+      "test_name": "hashlib"
+    },
+    {
+      "code": "258         else:  # RANDOM\n259             selected = random.choice(available_regions)\n260         \n",
+      "col_offset": 23,
+      "end_col_offset": 55,
+      "filename": "src/retrieval_free/multi_region.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 330,
+        "link": "https://cwe.mitre.org/data/definitions/330.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+      "line_number": 259,
+      "line_range": [
+        259
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random",
+      "test_id": "B311",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "294         total_weight = sum(weights)\n295         rand_val = random.uniform(0, total_weight)\n296         \n",
+      "col_offset": 19,
+      "end_col_offset": 50,
+      "filename": "src/retrieval_free/multi_region.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 330,
+        "link": "https://cwe.mitre.org/data/definitions/330.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+      "line_number": 295,
+      "line_range": [
+        295
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random",
+      "test_id": "B311",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "330                     pass  # nvidia-ml-py not available\n331                 except Exception:\n332                     pass  # Other NVML errors\n333             \n",
+      "col_offset": 16,
+      "end_col_offset": 24,
+      "filename": "src/retrieval_free/performance_monitor.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 703,
+        "link": "https://cwe.mitre.org/data/definitions/703.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Try, Except, Pass detected.",
+      "line_number": 331,
+      "line_range": [
+        331,
+        332
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b110_try_except_pass.html",
+      "test_id": "B110",
+      "test_name": "try_except_pass"
+    },
+    {
+      "code": "8 from pathlib import Path\n9 import subprocess\n10 import shutil\n",
+      "col_offset": 0,
+      "end_col_offset": 17,
+      "filename": "src/retrieval_free/platform.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 78,
+        "link": "https://cwe.mitre.org/data/definitions/78.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Consider possible security implications associated with the subprocess module.",
+      "line_number": 9,
+      "line_range": [
+        9
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_imports.html#b404-import-subprocess",
+      "test_id": "B404",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "272                 timeout=timeout,\n273                 shell=shell,\n274                 capture_output=True,\n275                 text=True\n276             )\n277             \n278             return result.returncode, result.stdout, result.stderr\n279             \n280         except subprocess.TimeoutExpired:\n281             return -1, \"\", \"Command timed out\"\n282         except FileNotFoundError:\n",
+      "col_offset": 21,
+      "end_col_offset": 13,
+      "filename": "src/retrieval_free/platform.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 78,
+        "link": "https://cwe.mitre.org/data/definitions/78.html"
+      },
+      "issue_severity": "HIGH",
+      "issue_text": "subprocess call with shell=True identified, security issue.",
+      "line_number": 273,
+      "line_range": [
+        268,
+        269,
+        270,
+        271,
+        272,
+        273,
+        274,
+        275,
+        276
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b602_subprocess_popen_with_shell_equals_true.html",
+      "test_id": "B602",
+      "test_name": "subprocess_popen_with_shell_equals_true"
+    },
+    {
+      "code": "233         \n234         model = AutoModelForCausalLM.from_pretrained(model_name, **kwargs)\n235         tokenizer = AutoTokenizer.from_pretrained(model_name)\n",
+      "col_offset": 16,
+      "end_col_offset": 74,
+      "filename": "src/retrieval_free/plugins.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 494,
+        "link": "https://cwe.mitre.org/data/definitions/494.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Unsafe Hugging Face Hub download without revision pinning in from_pretrained()",
+      "line_number": 234,
+      "line_range": [
+        234
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b615_huggingface_unsafe_download.html",
+      "test_id": "B615",
+      "test_name": "huggingface_unsafe_download"
+    },
+    {
+      "code": "234         model = AutoModelForCausalLM.from_pretrained(model_name, **kwargs)\n235         tokenizer = AutoTokenizer.from_pretrained(model_name)\n236         \n",
+      "col_offset": 20,
+      "end_col_offset": 61,
+      "filename": "src/retrieval_free/plugins.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 494,
+        "link": "https://cwe.mitre.org/data/definitions/494.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Unsafe Hugging Face Hub download without revision pinning in from_pretrained()",
+      "line_number": 235,
+      "line_range": [
+        235
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b615_huggingface_unsafe_download.html",
+      "test_id": "B615",
+      "test_name": "huggingface_unsafe_download"
+    },
+    {
+      "code": "690                 try:\n691                     test_data = random.choice(config.test_data) if config.test_data else {}\n692                     \n",
+      "col_offset": 32,
+      "end_col_offset": 63,
+      "filename": "src/retrieval_free/quality_assurance.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 330,
+        "link": "https://cwe.mitre.org/data/definitions/330.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+      "line_number": 691,
+      "line_range": [
+        691
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random",
+      "test_id": "B311",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "780             while time.time() < end_time:\n781                 if random.random() < config.failure_probability:\n782                     failure_type = random.choice(config.failure_types)\n",
+      "col_offset": 19,
+      "end_col_offset": 34,
+      "filename": "src/retrieval_free/quality_assurance.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 330,
+        "link": "https://cwe.mitre.org/data/definitions/330.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+      "line_number": 781,
+      "line_range": [
+        781
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random",
+      "test_id": "B311",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "781                 if random.random() < config.failure_probability:\n782                     failure_type = random.choice(config.failure_types)\n783                     \n",
+      "col_offset": 35,
+      "end_col_offset": 70,
+      "filename": "src/retrieval_free/quality_assurance.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 330,
+        "link": "https://cwe.mitre.org/data/definitions/330.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+      "line_number": 782,
+      "line_range": [
+        782
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random",
+      "test_id": "B311",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "385                     batch.append(task)\n386                 except:\n387                     continue  # Timeout, check if still running\n388                 \n",
+      "col_offset": 16,
+      "end_col_offset": 28,
+      "filename": "src/retrieval_free/scaling.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 703,
+        "link": "https://cwe.mitre.org/data/definitions/703.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Try, Except, Continue detected.",
+      "line_number": 386,
+      "line_range": [
+        386,
+        387
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b112_try_except_continue.html",
+      "test_id": "B112",
+      "test_name": "try_except_continue"
+    },
+    {
+      "code": "131         \"\"\"\n132         scan_id = hashlib.md5(f\"{model_path}{time.time()}\".encode()).hexdigest()[:8]\n133         start_time = time.time()\n",
+      "col_offset": 18,
+      "end_col_offset": 68,
+      "filename": "src/retrieval_free/security.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 327,
+        "link": "https://cwe.mitre.org/data/definitions/327.html"
+      },
+      "issue_severity": "HIGH",
+      "issue_text": "Use of weak MD5 hash for security. Consider usedforsecurity=False",
+      "line_number": 132,
+      "line_range": [
+        132
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b324_hashlib.html",
+      "test_id": "B324",
+      "test_name": "hashlib"
+    },
+    {
+      "code": "863     \"\"\"\n864     scan_id = hashlib.md5(f\"{code_dir}{time.time()}\".encode()).hexdigest()[:8]\n865     start_time = time.time()\n",
+      "col_offset": 14,
+      "end_col_offset": 62,
+      "filename": "src/retrieval_free/security.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 327,
+        "link": "https://cwe.mitre.org/data/definitions/327.html"
+      },
+      "issue_severity": "HIGH",
+      "issue_text": "Use of weak MD5 hash for security. Consider usedforsecurity=False",
+      "line_number": 864,
+      "line_range": [
+        864
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b324_hashlib.html",
+      "test_id": "B324",
+      "test_name": "hashlib"
+    },
+    {
+      "code": "874         try:\n875             import subprocess\n876             import json\n",
+      "col_offset": 12,
+      "end_col_offset": 29,
+      "filename": "src/retrieval_free/security.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 78,
+        "link": "https://cwe.mitre.org/data/definitions/78.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Consider possible security implications associated with the subprocess module.",
+      "line_number": 875,
+      "line_range": [
+        875
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_imports.html#b404-import-subprocess",
+      "test_id": "B404",
+      "test_name": "blacklist"
+    },
+    {
+      "code": "877             \n878             result = subprocess.run([\n879                 'bandit', '-r', code_dir, '-f', 'json',\n880                 '--exclude', ','.join(exclude_patterns)\n881             ], capture_output=True, text=True, timeout=60)\n882             \n",
+      "col_offset": 21,
+      "end_col_offset": 58,
+      "filename": "src/retrieval_free/security.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 78,
+        "link": "https://cwe.mitre.org/data/definitions/78.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Starting a process with a partial executable path",
+      "line_number": 878,
+      "line_range": [
+        878,
+        879,
+        880,
+        881
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b607_start_process_with_partial_path.html",
+      "test_id": "B607",
+      "test_name": "start_process_with_partial_path"
+    },
+    {
+      "code": "877             \n878             result = subprocess.run([\n879                 'bandit', '-r', code_dir, '-f', 'json',\n880                 '--exclude', ','.join(exclude_patterns)\n881             ], capture_output=True, text=True, timeout=60)\n882             \n",
+      "col_offset": 21,
+      "end_col_offset": 58,
+      "filename": "src/retrieval_free/security.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 78,
+        "link": "https://cwe.mitre.org/data/definitions/78.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "subprocess call - check for execution of untrusted input.",
+      "line_number": 878,
+      "line_range": [
+        878,
+        879,
+        880,
+        881
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.6/plugins/b603_subprocess_without_shell_equals_true.html",
+      "test_id": "B603",
+      "test_name": "subprocess_without_shell_equals_true"
     }
-  ],
-  "info": [
-    {
-      "type": "info",
-      "message": "Could not scan pyproject.toml for vulnerabilities (safety tool not available)"
-    }
-  ],
-  "summary": {
-    "vulnerabilities_count": 11,
-    "warnings_count": 6,
-    "info_count": 1,
-    "files_scanned": 108,
-    "scan_date": "2025-08-04T13:50:28.096313",
-    "severity_breakdown": {
-      "high": 11
-    }
-  }
+  ]
 }

@@ -5,13 +5,48 @@ import sys
 import logging
 import hashlib
 import tempfile
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, List, Optional, Set, Callable
 from pathlib import Path
 import json
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import secrets
+import hmac
+from datetime import datetime, timedelta
+import threading
+from collections import defaultdict, deque
+from functools import wraps
+import ipaddress
+import re
 
 logger = logging.getLogger(__name__)
+
+# PII Detection patterns
+PII_PATTERNS = {
+    'email': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+    'phone': r'(\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}',
+    'ssn': r'\b\d{3}-\d{2}-\d{4}\b',
+    'credit_card': r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b',
+    'ip_address': r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',
+    'passport': r'\b[A-Z]{1,2}\d{6,9}\b',
+    'driver_license': r'\b[A-Z]{1,2}\d{6,8}\b',
+    'bank_account': r'\b\d{8,17}\b',
+    'date_of_birth': r'\b(0?[1-9]|1[0-2])[\\/\\-](0?[1-9]|[12][0-9]|3[01])[\\/\\-]\d{4}\b'
+}
+
+# Malicious pattern detection
+MALICIOUS_PATTERNS = [
+    r'<script[^>]*>.*?</script>',  # Script injection
+    r'javascript:\s*[\w\(\)]+',   # JavaScript URLs
+    r'data:.*base64',             # Base64 data URLs
+    r'\beval\s*\(',              # eval() calls
+    r'\bexec\s*\(',              # exec() calls
+    r'\b__import__\s*\(',        # Dynamic imports
+    r'\bos\.system\s*\(',        # System calls
+    r'subprocess\.',             # Subprocess calls
+    r'\bopen\s*\(',              # File operations
+    r'pickle\.loads?\s*\(',      # Pickle deserialization
+]
 
 
 @dataclass
@@ -23,6 +58,40 @@ class SecurityScan:
     warnings: List[str]
     scan_time: float
     scan_id: str
+
+
+@dataclass
+class APIKey:
+    """API Key information."""
+    key_id: str
+    key_hash: str
+    permissions: Set[str]
+    created_at: datetime
+    last_used: Optional[datetime] = None
+    usage_count: int = 0
+    rate_limit_requests: int = 100  # requests per minute
+    rate_limit_window: int = 60     # seconds
+    is_active: bool = True
+    
+
+@dataclass 
+class RateLimitInfo:
+    """Rate limit tracking information."""
+    requests: deque = field(default_factory=deque)
+    last_request: Optional[datetime] = None
+    blocked_until: Optional[datetime] = None
+    total_requests: int = 0
+    blocked_requests: int = 0
+
+
+@dataclass
+class PIIDetectionResult:
+    """PII detection result."""
+    detected_types: List[str]
+    locations: Dict[str, List[int]]  # type -> list of character positions
+    masked_text: str
+    risk_level: str  # low, medium, high
+    recommendations: List[str]
 
 
 class ModelSecurityValidator:
@@ -42,6 +111,13 @@ class ModelSecurityValidator:
             # Add known good model hashes here
             'rfcc-base-8x': 'placeholder_hash',
             'context-compressor-base': 'placeholder_hash'
+        }
+        
+        # Malicious model signatures (simplified examples)
+        self.malicious_signatures = {
+            'backdoor_trigger_1': 'deadbeef',
+            'data_exfiltration_1': 'cafebabe',
+            'model_poisoning_1': 'feedface'
         }
     
     def validate_model_source(self, model_path: str) -> SecurityScan:
@@ -423,6 +499,355 @@ class AuditLogger:
         )
 
 
+class AuthenticationManager:
+    """Manages API keys and authentication."""
+    
+    def __init__(self):
+        """Initialize authentication manager."""
+        self.api_keys: Dict[str, APIKey] = {}
+        self.rate_limits: Dict[str, RateLimitInfo] = defaultdict(RateLimitInfo)
+        self._lock = threading.RLock()
+    
+    def generate_api_key(
+        self,
+        permissions: Optional[Set[str]] = None,
+        rate_limit_requests: int = 100,
+        rate_limit_window: int = 60
+    ) -> Tuple[str, str]:
+        """Generate a new API key.
+        
+        Args:
+            permissions: Set of permissions for this key
+            rate_limit_requests: Requests per window
+            rate_limit_window: Window size in seconds
+            
+        Returns:
+            Tuple of (key_id, api_key)
+        """
+        with self._lock:
+            key_id = secrets.token_urlsafe(8)
+            api_key = secrets.token_urlsafe(32)
+            key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+            
+            permissions = permissions or {'compress', 'decompress', 'health'}
+            
+            self.api_keys[key_id] = APIKey(
+                key_id=key_id,
+                key_hash=key_hash,
+                permissions=permissions,
+                created_at=datetime.now(),
+                rate_limit_requests=rate_limit_requests,
+                rate_limit_window=rate_limit_window
+            )
+            
+            logger.info(f"Generated API key: {key_id}")
+            return key_id, api_key
+    
+    def validate_api_key(self, api_key: str) -> Optional[APIKey]:
+        """Validate an API key.
+        
+        Args:
+            api_key: The API key to validate
+            
+        Returns:
+            APIKey object if valid, None otherwise
+        """
+        key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+        
+        with self._lock:
+            for key_info in self.api_keys.values():
+                if key_info.key_hash == key_hash and key_info.is_active:
+                    key_info.last_used = datetime.now()
+                    key_info.usage_count += 1
+                    return key_info
+        
+        logger.warning(f"Invalid API key attempted: {key_hash[:8]}...")
+        return None
+    
+    def check_rate_limit(self, key_id: str, api_key_info: APIKey) -> bool:
+        """Check if request is within rate limit.
+        
+        Args:
+            key_id: API key ID
+            api_key_info: API key information
+            
+        Returns:
+            True if within rate limit, False if exceeded
+        """
+        with self._lock:
+            rate_info = self.rate_limits[key_id]
+            current_time = datetime.now()
+            
+            # Check if currently blocked
+            if rate_info.blocked_until and current_time < rate_info.blocked_until:
+                rate_info.blocked_requests += 1
+                return False
+            
+            # Clean up old requests outside the window
+            window_start = current_time - timedelta(seconds=api_key_info.rate_limit_window)
+            while rate_info.requests and rate_info.requests[0] < window_start:
+                rate_info.requests.popleft()
+            
+            # Check if over limit
+            if len(rate_info.requests) >= api_key_info.rate_limit_requests:
+                # Block for the rate limit window
+                rate_info.blocked_until = current_time + timedelta(seconds=api_key_info.rate_limit_window)
+                rate_info.blocked_requests += 1
+                logger.warning(f"Rate limit exceeded for key: {key_id}")
+                return False
+            
+            # Add current request
+            rate_info.requests.append(current_time)
+            rate_info.total_requests += 1
+            rate_info.last_request = current_time
+            
+            return True
+    
+    def revoke_api_key(self, key_id: str) -> bool:
+        """Revoke an API key.
+        
+        Args:
+            key_id: API key ID to revoke
+            
+        Returns:
+            True if revoked, False if not found
+        """
+        with self._lock:
+            if key_id in self.api_keys:
+                self.api_keys[key_id].is_active = False
+                logger.info(f"Revoked API key: {key_id}")
+                return True
+            return False
+    
+    def get_usage_stats(self, key_id: str) -> Optional[Dict[str, Any]]:
+        """Get usage statistics for an API key.
+        
+        Args:
+            key_id: API key ID
+            
+        Returns:
+            Usage statistics dictionary
+        """
+        with self._lock:
+            if key_id not in self.api_keys:
+                return None
+            
+            key_info = self.api_keys[key_id]
+            rate_info = self.rate_limits[key_id]
+            
+            return {
+                'key_id': key_id,
+                'created_at': key_info.created_at.isoformat(),
+                'last_used': key_info.last_used.isoformat() if key_info.last_used else None,
+                'usage_count': key_info.usage_count,
+                'is_active': key_info.is_active,
+                'permissions': list(key_info.permissions),
+                'rate_limit': {
+                    'requests_per_window': key_info.rate_limit_requests,
+                    'window_seconds': key_info.rate_limit_window,
+                    'current_requests': len(rate_info.requests),
+                    'total_requests': rate_info.total_requests,
+                    'blocked_requests': rate_info.blocked_requests,
+                    'blocked_until': rate_info.blocked_until.isoformat() if rate_info.blocked_until else None
+                }
+            }
+
+
+class EnhancedInputSanitizer:
+    """Enhanced input sanitization with PII detection and malicious content filtering."""
+    
+    def __init__(self):
+        """Initialize input sanitizer."""
+        self.pii_patterns = PII_PATTERNS
+        self.malicious_patterns = MALICIOUS_PATTERNS
+    
+    def sanitize_input(self, text: str, mask_pii: bool = True) -> Dict[str, Any]:
+        """Sanitize input text.
+        
+        Args:
+            text: Input text to sanitize
+            mask_pii: Whether to mask detected PII
+            
+        Returns:
+            Dictionary with sanitization results
+        """
+        # Detect PII
+        pii_result = self.detect_pii(text)
+        
+        # Detect malicious content
+        malicious_result = self.detect_malicious_content(text)
+        
+        # Sanitize text
+        sanitized_text = text
+        
+        # Mask PII if requested
+        if mask_pii:
+            sanitized_text = pii_result.masked_text
+        
+        # Remove malicious content
+        for pattern in self.malicious_patterns:
+            sanitized_text = re.sub(pattern, '[REMOVED]', sanitized_text, flags=re.IGNORECASE | re.DOTALL)
+        
+        return {
+            'original_length': len(text),
+            'sanitized_text': sanitized_text,
+            'sanitized_length': len(sanitized_text),
+            'pii_detected': pii_result.detected_types,
+            'pii_risk_level': pii_result.risk_level,
+            'malicious_patterns_found': malicious_result['patterns_found'],
+            'risk_score': self._calculate_risk_score(pii_result, malicious_result),
+            'recommendations': pii_result.recommendations + malicious_result.get('recommendations', [])
+        }
+    
+    def detect_pii(self, text: str) -> PIIDetectionResult:
+        """Detect personally identifiable information.
+        
+        Args:
+            text: Text to scan for PII
+            
+        Returns:
+            PIIDetectionResult with detection details
+        """
+        detected_types = []
+        locations = {}
+        masked_text = text
+        recommendations = []
+        
+        for pii_type, pattern in self.pii_patterns.items():
+            matches = list(re.finditer(pattern, text, re.IGNORECASE))
+            
+            if matches:
+                detected_types.append(pii_type)
+                locations[pii_type] = [match.start() for match in matches]
+                
+                # Mask the PII in text
+                for match in reversed(matches):  # Reverse to maintain positions
+                    mask_length = len(match.group())
+                    mask = '[' + pii_type.upper() + '_MASKED]'
+                    masked_text = masked_text[:match.start()] + mask + masked_text[match.end():]
+                
+                recommendations.append(f"Consider removing or further anonymizing {pii_type} data")
+        
+        # Determine risk level
+        high_risk_types = {'ssn', 'credit_card', 'bank_account', 'passport'}
+        medium_risk_types = {'email', 'phone', 'driver_license', 'date_of_birth'}
+        
+        risk_level = 'low'
+        if any(pii_type in high_risk_types for pii_type in detected_types):
+            risk_level = 'high'
+        elif any(pii_type in medium_risk_types for pii_type in detected_types):
+            risk_level = 'medium'
+        
+        return PIIDetectionResult(
+            detected_types=detected_types,
+            locations=locations,
+            masked_text=masked_text,
+            risk_level=risk_level,
+            recommendations=recommendations
+        )
+    
+    def detect_malicious_content(self, text: str) -> Dict[str, Any]:
+        """Detect potentially malicious content.
+        
+        Args:
+            text: Text to scan
+            
+        Returns:
+            Dictionary with detection results
+        """
+        patterns_found = []
+        recommendations = []
+        
+        for pattern in self.malicious_patterns:
+            if re.search(pattern, text, re.IGNORECASE | re.DOTALL):
+                patterns_found.append(pattern)
+                recommendations.append(f"Suspicious pattern detected: {pattern}")
+        
+        return {
+            'patterns_found': patterns_found,
+            'risk_level': 'high' if patterns_found else 'low',
+            'recommendations': recommendations
+        }
+    
+    def _calculate_risk_score(self, pii_result: PIIDetectionResult, malicious_result: Dict[str, Any]) -> float:
+        """Calculate overall risk score.
+        
+        Args:
+            pii_result: PII detection result
+            malicious_result: Malicious content detection result
+            
+        Returns:
+            Risk score between 0.0 and 1.0
+        """
+        score = 0.0
+        
+        # PII risk scoring
+        pii_weights = {
+            'low': 0.1,
+            'medium': 0.3,
+            'high': 0.6
+        }
+        score += pii_weights.get(pii_result.risk_level, 0.0)
+        
+        # Malicious content scoring
+        if malicious_result['patterns_found']:
+            score += 0.4  # High penalty for malicious patterns
+        
+        return min(score, 1.0)
+
+
+def require_authentication(permissions: Optional[Set[str]] = None):
+    """Decorator to require API key authentication.
+    
+    Args:
+        permissions: Required permissions for this endpoint
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Extract API key from kwargs or environment
+            api_key = kwargs.pop('api_key', None) or os.environ.get('RETRIEVAL_FREE_API_KEY')
+            
+            if not api_key:
+                raise SecurityError("API key required", error_code="AUTH_MISSING_KEY")
+            
+            # Get authentication manager
+            auth_manager = get_auth_manager()
+            
+            # Validate API key
+            key_info = auth_manager.validate_api_key(api_key)
+            if not key_info:
+                raise SecurityError("Invalid API key", error_code="AUTH_INVALID_KEY")
+            
+            # Check permissions
+            if permissions and not permissions.issubset(key_info.permissions):
+                missing = permissions - key_info.permissions
+                raise SecurityError(
+                    f"Insufficient permissions. Missing: {missing}",
+                    error_code="AUTH_INSUFFICIENT_PERMISSIONS"
+                )
+            
+            # Check rate limit
+            if not auth_manager.check_rate_limit(key_info.key_id, key_info):
+                raise SecurityError("Rate limit exceeded", error_code="AUTH_RATE_LIMIT_EXCEEDED")
+            
+            # Add key info to kwargs for use in function
+            kwargs['_api_key_info'] = key_info
+            
+            return func(*args, **kwargs)
+        
+        return wrapper
+    return decorator
+
+
+class SecurityError(Exception):
+    """Security-related error."""
+    
+    def __init__(self, message: str, error_code: str = "SECURITY_ERROR"):
+        super().__init__(message)
+        self.error_code = error_code
+
+
 def scan_for_vulnerabilities(
     code_dir: str,
     exclude_patterns: Optional[List[str]] = None
@@ -505,25 +930,45 @@ def _check_file_for_issues(
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # Check for potential security issues
-        security_patterns = [
-            (r'eval\s*\(', 'Use of eval() function'),
-            (r'exec\s*\(', 'Use of exec() function'),
-            (r'subprocess\.call\s*\(.*shell\s*=\s*True', 'Shell command injection risk'),
-            (r'os\.system\s*\(', 'Use of os.system()'),
-            (r'pickle\.loads?\s*\(', 'Use of pickle (deserialization risk)'),
-        ]
-        
-        import re
-        for pattern, description in security_patterns:
-            if re.search(pattern, content, re.IGNORECASE):
+        # Check for potential security issues using enhanced patterns
+        for pattern in MALICIOUS_PATTERNS:
+            if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
                 vulnerabilities.append({
                     'type': 'pattern_match',
-                    'severity': 'medium',
-                    'description': f"{description} in {file_path}",
+                    'severity': 'high',
+                    'description': f"Suspicious pattern '{pattern}' found in {file_path}",
                     'file': file_path,
                     'recommendation': 'Review and validate usage'
                 })
     
     except Exception as e:
         warnings.append(f"Could not scan {file_path}: {e}")
+
+
+# Global instances
+_auth_manager: Optional[AuthenticationManager] = None
+_input_sanitizer: Optional[EnhancedInputSanitizer] = None
+
+
+def get_auth_manager() -> AuthenticationManager:
+    """Get global authentication manager.
+    
+    Returns:
+        AuthenticationManager instance
+    """
+    global _auth_manager
+    if _auth_manager is None:
+        _auth_manager = AuthenticationManager()
+    return _auth_manager
+
+
+def get_input_sanitizer() -> EnhancedInputSanitizer:
+    """Get global input sanitizer.
+    
+    Returns:
+        EnhancedInputSanitizer instance
+    """
+    global _input_sanitizer
+    if _input_sanitizer is None:
+        _input_sanitizer = EnhancedInputSanitizer()
+    return _input_sanitizer

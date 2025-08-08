@@ -39,7 +39,7 @@ def __getattr__(name):
     elif name == "CompressorPlugin":
         from .plugins import CompressorPlugin
         return CompressorPlugin
-    
+
     # Generation 3 Scaling Features
     elif name == "HighPerformanceCompressor":
         from .scaling import HighPerformanceCompressor
@@ -56,7 +56,7 @@ def __getattr__(name):
     elif name == "AutoScaler":
         from .scaling import AutoScaler
         return AutoScaler
-    
+
     # Distributed caching
     elif name == "DistributedCacheManager":
         from .distributed_cache import DistributedCacheManager
@@ -67,7 +67,7 @@ def __getattr__(name):
     elif name == "TieredDistributedCache":
         from .distributed_cache import TieredDistributedCache
         return TieredDistributedCache
-    
+
     # Async API
     elif name == "AsyncCompressionAPI":
         from .async_api import AsyncCompressionAPI
@@ -75,7 +75,7 @@ def __getattr__(name):
     elif name == "create_api_server":
         from .async_api import create_api_server
         return create_api_server
-    
+
     # Performance monitoring
     elif name == "PerformanceMonitor":
         from .performance_monitor import PerformanceMonitor
@@ -86,7 +86,7 @@ def __getattr__(name):
     elif name == "performance_profile":
         from .performance_monitor import performance_profile
         return performance_profile
-    
+
     # Multi-region deployment
     elif name == "MultiRegionManager":
         from .multi_region import MultiRegionManager
@@ -97,7 +97,7 @@ def __getattr__(name):
     elif name == "setup_multi_region_deployment":
         from .multi_region import setup_multi_region_deployment
         return setup_multi_region_deployment
-    
+
     # Adaptive compression
     elif name == "AdaptiveCompressor":
         from .adaptive_compression import AdaptiveCompressor
@@ -108,45 +108,45 @@ def __getattr__(name):
     elif name == "StreamingCompressor":
         from .adaptive_compression import StreamingCompressor
         return StreamingCompressor
-    
+
     else:
         raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 __all__ = [
     # Core compressors
     "ContextCompressor",
-    "AutoCompressor", 
+    "AutoCompressor",
     "StreamingCompressor",
     "SelectiveCompressor",
     "MultiDocCompressor",
     "CompressorPlugin",
-    
+
     # Generation 3 Scaling Features
     "HighPerformanceCompressor",
-    "MultiGPUProcessor", 
+    "MultiGPUProcessor",
     "AsyncProcessor",
     "DistributedProcessor",
     "AutoScaler",
-    
+
     # Distributed caching
     "DistributedCacheManager",
     "RedisBackend",
     "TieredDistributedCache",
-    
+
     # Async API
     "AsyncCompressionAPI",
     "create_api_server",
-    
+
     # Performance monitoring
     "PerformanceMonitor",
     "get_performance_monitor",
     "performance_profile",
-    
+
     # Multi-region deployment
     "MultiRegionManager",
     "LoadBalancer",
     "setup_multi_region_deployment",
-    
+
     # Adaptive compression
     "AdaptiveCompressor",
     "ContentAnalyzer",

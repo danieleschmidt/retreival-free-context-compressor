@@ -1,23 +1,24 @@
 """Enhanced monitoring, distributed tracing, and alerting system."""
 
-import time
-import logging
 import json
-import threading
-import uuid
-import queue
-from typing import Dict, Any, List, Optional, Callable, Union
-from dataclasses import dataclass, asdict, field
-from collections import deque, defaultdict
+import logging
+import os
+import socket
 import statistics
+import threading
+import time
+import uuid
+from collections import defaultdict, deque
+from collections.abc import Callable
+from contextlib import contextmanager
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta
+from functools import wraps
+from typing import Any
+
 import psutil
 import torch
-from datetime import datetime, timedelta
-from contextlib import contextmanager
-from functools import wraps
-import socket
-import os
-from pathlib import Path
+
 
 logger = logging.getLogger(__name__)
 
@@ -25,36 +26,36 @@ logger = logging.getLogger(__name__)
 @dataclass
 class HealthStatus:
     """Health check status."""
-    
+
     service: str
     healthy: bool
     message: str
     response_time_ms: float
     timestamp: float
-    details: Dict[str, Any] = None
+    details: dict[str, Any] = None
 
 
 @dataclass
 class Span:
     """Distributed tracing span."""
-    
+
     trace_id: str
     span_id: str
-    parent_span_id: Optional[str]
+    parent_span_id: str | None
     operation_name: str
     start_time: float
-    end_time: Optional[float] = None
-    duration_ms: Optional[float] = None
-    tags: Dict[str, Any] = field(default_factory=dict)
-    logs: List[Dict[str, Any]] = field(default_factory=list)
+    end_time: float | None = None
+    duration_ms: float | None = None
+    tags: dict[str, Any] = field(default_factory=dict)
+    logs: list[dict[str, Any]] = field(default_factory=list)
     status: str = "ok"  # ok, error, timeout
-    
+
     def finish(self) -> None:
         """Finish the span."""
         if self.end_time is None:
             self.end_time = time.time()
             self.duration_ms = (self.end_time - self.start_time) * 1000
-    
+
     def log(self, message: str, level: str = "info", **fields) -> None:
         """Add log entry to span."""
         log_entry = {
@@ -64,11 +65,11 @@ class Span:
             **fields
         }
         self.logs.append(log_entry)
-    
+
     def set_tag(self, key: str, value: Any) -> None:
         """Set tag on span."""
         self.tags[key] = value
-    
+
     def set_error(self, error: Exception) -> None:
         """Mark span as error."""
         self.status = "error"
@@ -80,20 +81,20 @@ class Span:
 @dataclass
 class Trace:
     """Complete trace with multiple spans."""
-    
+
     trace_id: str
-    spans: List[Span] = field(default_factory=list)
+    spans: list[Span] = field(default_factory=list)
     start_time: float = field(default_factory=time.time)
-    end_time: Optional[float] = None
-    duration_ms: Optional[float] = None
-    root_span: Optional[Span] = None
-    
+    end_time: float | None = None
+    duration_ms: float | None = None
+    root_span: Span | None = None
+
     def add_span(self, span: Span) -> None:
         """Add span to trace."""
         self.spans.append(span)
         if self.root_span is None or span.parent_span_id is None:
             self.root_span = span
-    
+
     def finish(self) -> None:
         """Finish the trace."""
         if self.end_time is None:
@@ -104,7 +105,7 @@ class Trace:
 @dataclass
 class Alert:
     """Alert definition."""
-    
+
     alert_id: str
     name: str
     metric_name: str
@@ -115,12 +116,12 @@ class Alert:
     description: str = ""
     enabled: bool = True
     created_at: datetime = field(default_factory=datetime.now)
-    
+
     def evaluate(self, value: float) -> bool:
         """Evaluate if alert should fire."""
         if not self.enabled:
             return False
-            
+
         if self.operator == ">":
             return value > self.threshold
         elif self.operator == ">=":
@@ -133,14 +134,14 @@ class Alert:
             return value == self.threshold
         elif self.operator == "!=":
             return value != self.threshold
-        
+
         return False
 
 
 @dataclass
 class AlertInstance:
     """Active alert instance."""
-    
+
     alert_id: str
     alert_name: str
     metric_name: str
@@ -148,14 +149,14 @@ class AlertInstance:
     threshold: float
     severity: str
     fired_at: datetime = field(default_factory=datetime.now)
-    resolved_at: Optional[datetime] = None
+    resolved_at: datetime | None = None
     is_resolved: bool = False
 
 
 @dataclass
 class PerformanceMetrics:
     """Performance metrics snapshot."""
-    
+
     timestamp: float
     compression_ratio: float
     processing_time_ms: float
@@ -166,16 +167,16 @@ class PerformanceMetrics:
     throughput_tps: float  # tokens per second
     error_count: int = 0
     success_count: int = 0
-    trace_id: Optional[str] = None
-    span_id: Optional[str] = None
-    user_id: Optional[str] = None
-    model_name: Optional[str] = None
-    operation: Optional[str] = None
+    trace_id: str | None = None
+    span_id: str | None = None
+    user_id: str | None = None
+    model_name: str | None = None
+    operation: str | None = None
 
 
 class DistributedTracer:
     """Distributed tracing system."""
-    
+
     def __init__(self, service_name: str = "retrieval-free-compressor"):
         """Initialize distributed tracer.
         
@@ -183,14 +184,14 @@ class DistributedTracer:
             service_name: Name of the service
         """
         self.service_name = service_name
-        self.traces: Dict[str, Trace] = {}
-        self.active_spans: Dict[str, Span] = {}  # thread_id -> span
+        self.traces: dict[str, Trace] = {}
+        self.active_spans: dict[str, Span] = {}  # thread_id -> span
         self._lock = threading.RLock()
         self.enabled = True
         self.max_traces = 1000
-        
+
         logger.info(f"Distributed tracer initialized for service: {service_name}")
-    
+
     def create_trace(self, operation_name: str) -> str:
         """Create a new trace.
         
@@ -201,28 +202,28 @@ class DistributedTracer:
             Trace ID
         """
         trace_id = str(uuid.uuid4())
-        
+
         with self._lock:
             # Clean up old traces if we have too many
             if len(self.traces) >= self.max_traces:
-                oldest_trace_id = min(self.traces.keys(), 
+                oldest_trace_id = min(self.traces.keys(),
                                     key=lambda tid: self.traces[tid].start_time)
                 del self.traces[oldest_trace_id]
-            
+
             trace = Trace(trace_id=trace_id)
             self.traces[trace_id] = trace
-            
+
             # Create root span
             root_span = self.create_span(operation_name, trace_id=trace_id)
             trace.add_span(root_span)
-            
+
             return trace_id
-    
+
     def create_span(
-        self, 
-        operation_name: str, 
-        trace_id: Optional[str] = None, 
-        parent_span_id: Optional[str] = None
+        self,
+        operation_name: str,
+        trace_id: str | None = None,
+        parent_span_id: str | None = None
     ) -> Span:
         """Create a new span.
         
@@ -242,12 +243,12 @@ class DistributedTracer:
                 operation_name=operation_name,
                 start_time=time.time()
             )
-        
+
         if trace_id is None:
             trace_id = self.create_trace(operation_name)
-        
+
         span_id = str(uuid.uuid4())
-        
+
         span = Span(
             trace_id=trace_id,
             span_id=span_id,
@@ -255,42 +256,42 @@ class DistributedTracer:
             operation_name=operation_name,
             start_time=time.time()
         )
-        
+
         # Add service tags
         span.set_tag("service.name", self.service_name)
         span.set_tag("host.name", socket.gethostname())
         span.set_tag("process.pid", os.getpid())
-        
+
         with self._lock:
             if trace_id in self.traces:
                 self.traces[trace_id].add_span(span)
-            
+
             # Set as active span for current thread
             thread_id = threading.current_thread().ident
             self.active_spans[thread_id] = span
-        
+
         return span
-    
-    def get_active_span(self) -> Optional[Span]:
+
+    def get_active_span(self) -> Span | None:
         """Get active span for current thread."""
         thread_id = threading.current_thread().ident
         return self.active_spans.get(thread_id)
-    
+
     def finish_span(self, span: Span) -> None:
         """Finish a span."""
         span.finish()
-        
+
         with self._lock:
             # Remove from active spans if it's the current one
             thread_id = threading.current_thread().ident
-            if (thread_id in self.active_spans and 
+            if (thread_id in self.active_spans and
                 self.active_spans[thread_id].span_id == span.span_id):
                 del self.active_spans[thread_id]
-    
-    def get_trace(self, trace_id: str) -> Optional[Trace]:
+
+    def get_trace(self, trace_id: str) -> Trace | None:
         """Get trace by ID."""
         return self.traces.get(trace_id)
-    
+
     def export_traces(self, format: str = "json") -> str:
         """Export traces in specified format."""
         with self._lock:
@@ -305,24 +306,24 @@ class DistributedTracer:
                         "spans": [asdict(span) for span in trace.spans]
                     }
                     traces_data.append(trace_data)
-                
+
                 return json.dumps(traces_data, indent=2, default=str)
             else:
                 raise ValueError(f"Unsupported format: {format}")
-    
+
     @contextmanager
     def span(self, operation_name: str, **tags):
         """Context manager for creating spans."""
         active_span = self.get_active_span()
         parent_span_id = active_span.span_id if active_span else None
         trace_id = active_span.trace_id if active_span else None
-        
+
         span = self.create_span(operation_name, trace_id, parent_span_id)
-        
+
         # Set provided tags
         for key, value in tags.items():
             span.set_tag(key, value)
-        
+
         try:
             yield span
         except Exception as e:
@@ -334,7 +335,7 @@ class DistributedTracer:
 
 class EnhancedMetricsCollector:
     """Enhanced metrics collector with distributed tracing support."""
-    
+
     def __init__(self, max_history: int = 10000):
         """Initialize enhanced metrics collector.
         
@@ -343,29 +344,29 @@ class EnhancedMetricsCollector:
         """
         self.max_history = max_history
         self.metrics_history: deque = deque(maxlen=max_history)
-        self.counters: Dict[str, int] = defaultdict(int)
-        self.gauges: Dict[str, float] = defaultdict(float)
-        self.timers: Dict[str, List[float]] = defaultdict(list)
-        self.histograms: Dict[str, List[float]] = defaultdict(list)
+        self.counters: dict[str, int] = defaultdict(int)
+        self.gauges: dict[str, float] = defaultdict(float)
+        self.timers: dict[str, list[float]] = defaultdict(list)
+        self.histograms: dict[str, list[float]] = defaultdict(list)
         self._lock = threading.RLock()
-        
+
         # Error tracking
-        self.error_counts: Dict[str, int] = defaultdict(int)
-        self.error_rates: Dict[str, deque] = defaultdict(lambda: deque(maxlen=100))
-        
+        self.error_counts: dict[str, int] = defaultdict(int)
+        self.error_rates: dict[str, deque] = defaultdict(lambda: deque(maxlen=100))
+
         # Performance tracking
-        self.sla_violations: Dict[str, int] = defaultdict(int)
-        self.response_times: Dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))
-        
+        self.sla_violations: dict[str, int] = defaultdict(int)
+        self.response_times: dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))
+
         # SLA thresholds
         self.sla_thresholds = {
             'compression_time_ms': 5000,  # 5 second max
             'memory_usage_mb': 4096,      # 4GB max
             'error_rate_percent': 1.0     # 1% max error rate
         }
-        
+
         logger.info("Enhanced metrics collector initialized")
-    
+
     def record_compression(
         self,
         input_tokens: int,
@@ -373,9 +374,9 @@ class EnhancedMetricsCollector:
         processing_time_ms: float,
         memory_usage_mb: float = 0,
         model_name: str = "unknown",
-        trace_id: Optional[str] = None,
-        span_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        trace_id: str | None = None,
+        span_id: str | None = None,
+        user_id: str | None = None,
         operation: str = "compress",
         success: bool = True
     ) -> None:
@@ -397,12 +398,12 @@ class EnhancedMetricsCollector:
             # Calculate derived metrics
             compression_ratio = input_tokens / output_tokens if output_tokens > 0 else 0
             throughput_tps = input_tokens / (processing_time_ms / 1000) if processing_time_ms > 0 else 0
-            
+
             # Get GPU memory if available
             gpu_memory_mb = 0
             if torch.cuda.is_available():
                 gpu_memory_mb = torch.cuda.memory_allocated() / 1024 / 1024
-            
+
             # Create metrics record
             metrics = PerformanceMetrics(
                 timestamp=time.time(),
@@ -421,56 +422,56 @@ class EnhancedMetricsCollector:
                 model_name=model_name,
                 operation=operation
             )
-            
+
             self.metrics_history.append(metrics)
-            
+
             # Update counters
             self.counters['total_compressions'] += 1
             self.counters[f'compressions_{model_name}'] += 1
             self.counters['total_input_tokens'] += input_tokens
             self.counters['total_output_tokens'] += output_tokens
-            
+
             if success:
                 self.counters['successful_compressions'] += 1
             else:
                 self.counters['failed_compressions'] += 1
                 self.error_counts[operation] += 1
-                
+
                 # Track error rate
                 self.error_rates[operation].append(time.time())
-            
+
             # Update gauges
             self.gauges['last_compression_ratio'] = compression_ratio
             self.gauges['last_processing_time_ms'] = processing_time_ms
             self.gauges['last_throughput_tps'] = throughput_tps
             self.gauges['last_memory_usage_mb'] = memory_usage_mb
             self.gauges['last_gpu_memory_mb'] = gpu_memory_mb
-            
+
             # Update timers and histograms
             self.timers['processing_time_ms'].append(processing_time_ms)
             self.timers['compression_ratio'].append(compression_ratio)
             self.histograms[f'{operation}_response_time'].append(processing_time_ms)
             self.response_times[operation].append(processing_time_ms)
-            
+
             # Check SLA violations
             self._check_sla_violations(operation, processing_time_ms, memory_usage_mb)
-            
+
             # Limit timer history
             max_timer_history = 1000
             for timer_name in self.timers:
                 if len(self.timers[timer_name]) > max_timer_history:
                     self.timers[timer_name] = self.timers[timer_name][-max_timer_history:]
-    
+
     def _check_sla_violations(self, operation: str, processing_time_ms: float, memory_usage_mb: float) -> None:
         """Check for SLA violations."""
         if processing_time_ms > self.sla_thresholds['compression_time_ms']:
             self.sla_violations[f'{operation}_time'] += 1
             logger.warning(f"SLA violation: {operation} took {processing_time_ms}ms")
-        
+
         if memory_usage_mb > self.sla_thresholds['memory_usage_mb']:
             self.sla_violations[f'{operation}_memory'] += 1
             logger.warning(f"SLA violation: {operation} used {memory_usage_mb}MB")
-    
+
     def get_error_rate(self, operation: str, window_minutes: int = 5) -> float:
         """Get error rate for an operation.
         
@@ -484,21 +485,21 @@ class EnhancedMetricsCollector:
         with self._lock:
             if operation not in self.error_rates:
                 return 0.0
-            
+
             cutoff_time = time.time() - (window_minutes * 60)
-            recent_errors = sum(1 for error_time in self.error_rates[operation] 
+            recent_errors = sum(1 for error_time in self.error_rates[operation]
                               if error_time >= cutoff_time)
-            
+
             # Get total operations in the same window
-            recent_metrics = [m for m in self.metrics_history 
+            recent_metrics = [m for m in self.metrics_history
                             if m.timestamp >= cutoff_time and m.operation == operation]
             total_operations = len(recent_metrics)
-            
+
             if total_operations == 0:
                 return 0.0
-            
+
             return (recent_errors / total_operations) * 100
-    
+
     def get_percentile(self, metric_name: str, percentile: int, window_minutes: int = 60) -> float:
         """Get percentile for a metric.
         
@@ -517,29 +518,29 @@ class EnhancedMetricsCollector:
                 values = list(self.response_times[metric_name])
             else:
                 return 0.0
-            
+
             if not values:
                 return 0.0
-            
+
             # Filter by time window if needed
             if window_minutes and hasattr(self, 'metrics_history'):
                 cutoff_time = time.time() - (window_minutes * 60)
-                # This is a simplified approach - in production, you'd want 
+                # This is a simplified approach - in production, you'd want
                 # to track timestamps for each value
                 recent_count = int(len(values) * 0.5)  # Approximate recent values
                 values = values[-recent_count:] if recent_count > 0 else values
-            
+
             sorted_values = sorted(values)
             index = (percentile / 100) * (len(sorted_values) - 1)
-            
+
             if index.is_integer():
                 return sorted_values[int(index)]
             else:
                 lower = sorted_values[int(index)]
                 upper = sorted_values[min(int(index) + 1, len(sorted_values) - 1)]
                 return lower + (upper - lower) * (index - int(index))
-    
-    def get_summary_stats(self, window_minutes: int = 60) -> Dict[str, Any]:
+
+    def get_summary_stats(self, window_minutes: int = 60) -> dict[str, Any]:
         """Get comprehensive summary statistics.
         
         Args:
@@ -551,20 +552,20 @@ class EnhancedMetricsCollector:
         with self._lock:
             cutoff_time = time.time() - (window_minutes * 60)
             recent_metrics = [m for m in self.metrics_history if m.timestamp >= cutoff_time]
-            
+
             if not recent_metrics:
                 return {'message': 'No recent metrics available'}
-            
+
             # Calculate statistics
             compression_ratios = [m.compression_ratio for m in recent_metrics if m.compression_ratio > 0]
             processing_times = [m.processing_time_ms for m in recent_metrics]
             throughputs = [m.throughput_tps for m in recent_metrics if m.throughput_tps > 0]
             memory_usage = [m.memory_usage_mb for m in recent_metrics]
-            
+
             success_count = sum(m.success_count for m in recent_metrics)
             error_count = sum(m.error_count for m in recent_metrics)
             total_operations = len(recent_metrics)
-            
+
             return {
                 'window_minutes': window_minutes,
                 'total_operations': total_operations,
@@ -593,7 +594,7 @@ class EnhancedMetricsCollector:
                 'sla_violations': dict(self.sla_violations),
                 'error_counts_by_operation': dict(self.error_counts)
             }
-    
+
     def export_metrics(self, format: str = "json") -> str:
         """Export metrics in specified format.
         
@@ -611,47 +612,47 @@ class EnhancedMetricsCollector:
                     'summary_stats': self.get_summary_stats(),
                     'recent_metrics': [asdict(m) for m in list(self.metrics_history)[-100:]]
                 }, indent=2, default=str)
-            
+
             elif format.lower() == "prometheus":
                 lines = []
-                
+
                 # Counters
                 for name, value in self.counters.items():
                     lines.append(f"retrieval_free_{name}_total {value}")
-                
-                # Gauges  
+
+                # Gauges
                 for name, value in self.gauges.items():
                     lines.append(f"retrieval_free_{name} {value}")
-                
+
                 # Histograms - basic percentiles
                 for operation in ['compress', 'decompress']:
                     p95 = self.get_percentile(f'{operation}_response_time', 95)
                     p99 = self.get_percentile(f'{operation}_response_time', 99)
                     lines.append(f"retrieval_free_{operation}_response_time_p95 {p95}")
                     lines.append(f"retrieval_free_{operation}_response_time_p99 {p99}")
-                
+
                 return "\n".join(lines)
-            
+
             else:
                 return f"Unsupported format: {format}"
 
 
 class AlertManager:
     """Enhanced alert manager with multiple notification channels."""
-    
+
     def __init__(self):
         """Initialize alert manager."""
-        self.alerts: Dict[str, Alert] = {}
-        self.active_alerts: Dict[str, AlertInstance] = {}
+        self.alerts: dict[str, Alert] = {}
+        self.active_alerts: dict[str, AlertInstance] = {}
         self.alert_history: deque = deque(maxlen=1000)
-        self.notification_handlers: List[Callable] = []
+        self.notification_handlers: list[Callable] = []
         self._lock = threading.RLock()
-        
+
         # Default thresholds
         self._setup_default_alerts()
-        
+
         logger.info("Alert manager initialized")
-    
+
     def _setup_default_alerts(self) -> None:
         """Set up default alerts."""
         default_alerts = [
@@ -692,10 +693,10 @@ class AlertManager:
                 description="Compression ratio below expected threshold"
             )
         ]
-        
+
         for alert in default_alerts:
             self.alerts[alert.alert_id] = alert
-    
+
     def register_alert(self, alert: Alert) -> None:
         """Register a new alert.
         
@@ -705,7 +706,7 @@ class AlertManager:
         with self._lock:
             self.alerts[alert.alert_id] = alert
             logger.info(f"Registered alert: {alert.name}")
-    
+
     def add_notification_handler(self, handler: Callable[[AlertInstance], None]) -> None:
         """Add notification handler.
         
@@ -713,8 +714,8 @@ class AlertManager:
             handler: Function that handles alert notifications
         """
         self.notification_handlers.append(handler)
-    
-    def check_metrics(self, metrics: Dict[str, float]) -> List[AlertInstance]:
+
+    def check_metrics(self, metrics: dict[str, float]) -> list[AlertInstance]:
         """Check metrics against all alerts.
         
         Args:
@@ -724,14 +725,14 @@ class AlertManager:
             List of triggered alerts
         """
         triggered_alerts = []
-        
+
         with self._lock:
             current_time = datetime.now()
-            
+
             for alert in self.alerts.values():
                 if alert.metric_name in metrics:
                     value = metrics[alert.metric_name]
-                    
+
                     if alert.evaluate(value):
                         # Alert should fire
                         if alert.alert_id not in self.active_alerts:
@@ -745,37 +746,37 @@ class AlertManager:
                                 severity=alert.severity,
                                 fired_at=current_time
                             )
-                            
+
                             self.active_alerts[alert.alert_id] = alert_instance
                             self.alert_history.append(alert_instance)
                             triggered_alerts.append(alert_instance)
-                            
+
                             # Send notifications
                             for handler in self.notification_handlers:
                                 try:
                                     handler(alert_instance)
                                 except Exception as e:
                                     logger.error(f"Notification handler failed: {e}")
-                    
+
                     else:
                         # Alert should not fire, resolve if active
                         if alert.alert_id in self.active_alerts:
                             alert_instance = self.active_alerts[alert.alert_id]
                             alert_instance.resolved_at = current_time
                             alert_instance.is_resolved = True
-                            
+
                             del self.active_alerts[alert.alert_id]
-                            
+
                             logger.info(f"Alert resolved: {alert.name}")
-        
+
         return triggered_alerts
-    
-    def get_active_alerts(self) -> List[AlertInstance]:
+
+    def get_active_alerts(self) -> list[AlertInstance]:
         """Get all active alerts."""
         with self._lock:
             return list(self.active_alerts.values())
-    
-    def get_alert_history(self, hours: int = 24) -> List[AlertInstance]:
+
+    def get_alert_history(self, hours: int = 24) -> list[AlertInstance]:
         """Get alert history.
         
         Args:
@@ -785,9 +786,9 @@ class AlertManager:
             List of alert instances
         """
         cutoff_time = datetime.now() - timedelta(hours=hours)
-        
+
         with self._lock:
-            return [alert for alert in self.alert_history 
+            return [alert for alert in self.alert_history
                    if alert.fired_at >= cutoff_time]
 
 
@@ -799,7 +800,7 @@ def log_alert_handler(alert_instance: AlertInstance) -> None:
     """
     logger_level = logging.WARNING if alert_instance.severity == 'warning' else logging.ERROR
     logger.log(
-        logger_level, 
+        logger_level,
         f"ALERT [{alert_instance.severity.upper()}] {alert_instance.alert_name}: "
         f"{alert_instance.metric_name} = {alert_instance.value} (threshold: {alert_instance.threshold})"
     )
@@ -815,12 +816,12 @@ def trace_operation(operation_name: str):
         @wraps(func)
         def wrapper(*args, **kwargs):
             tracer = get_distributed_tracer()
-            
+
             with tracer.span(operation_name) as span:
                 # Add function metadata
                 span.set_tag("function.name", func.__name__)
                 span.set_tag("function.module", func.__module__)
-                
+
                 # Add arguments if available
                 if args:
                     span.set_tag("args.count", len(args))
@@ -830,7 +831,7 @@ def trace_operation(operation_name: str):
                     for key in ["model_name", "user_id", "compression_ratio"]:
                         if key in kwargs:
                             span.set_tag(f"arg.{key}", kwargs[key])
-                
+
                 try:
                     result = func(*args, **kwargs)
                     span.set_tag("success", True)
@@ -839,15 +840,15 @@ def trace_operation(operation_name: str):
                     span.set_error(e)
                     span.set_tag("success", False)
                     raise
-        
+
         return wrapper
     return decorator
 
 
 # Global instances
-_distributed_tracer: Optional[DistributedTracer] = None
-_enhanced_metrics_collector: Optional[EnhancedMetricsCollector] = None
-_alert_manager: Optional[AlertManager] = None
+_distributed_tracer: DistributedTracer | None = None
+_enhanced_metrics_collector: EnhancedMetricsCollector | None = None
+_alert_manager: AlertManager | None = None
 
 
 def get_distributed_tracer() -> DistributedTracer:
@@ -888,7 +889,7 @@ def get_alert_manager() -> AlertManager:
     return _alert_manager
 
 
-def get_monitoring_status() -> Dict[str, Any]:
+def get_monitoring_status() -> dict[str, Any]:
     """Get comprehensive monitoring status.
     
     Returns:
@@ -897,7 +898,7 @@ def get_monitoring_status() -> Dict[str, Any]:
     tracer = get_distributed_tracer()
     metrics_collector = get_enhanced_metrics_collector()
     alert_manager = get_alert_manager()
-    
+
     return {
         "distributed_tracing": {
             "enabled": tracer.enabled,

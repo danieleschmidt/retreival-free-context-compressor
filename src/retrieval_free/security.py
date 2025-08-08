@@ -1,23 +1,22 @@
 """Security utilities and safeguards."""
 
-import os
-import sys
-import logging
 import hashlib
-import tempfile
-from typing import Dict, Any, List, Optional, Set, Callable
-from pathlib import Path
 import json
-import time
-from dataclasses import dataclass, field
-import secrets
-import hmac
-from datetime import datetime, timedelta
-import threading
-from collections import defaultdict, deque
-from functools import wraps
-import ipaddress
+import logging
+import os
 import re
+import secrets
+import tempfile
+import threading
+import time
+from collections import defaultdict, deque
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from functools import wraps
+from pathlib import Path
+from typing import Any
+
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +51,10 @@ MALICIOUS_PATTERNS = [
 @dataclass
 class SecurityScan:
     """Result of security scanning."""
-    
+
     passed: bool
-    vulnerabilities: List[Dict[str, Any]]
-    warnings: List[str]
+    vulnerabilities: list[dict[str, Any]]
+    warnings: list[str]
     scan_time: float
     scan_id: str
 
@@ -65,21 +64,21 @@ class APIKey:
     """API Key information."""
     key_id: str
     key_hash: str
-    permissions: Set[str]
+    permissions: set[str]
     created_at: datetime
-    last_used: Optional[datetime] = None
+    last_used: datetime | None = None
     usage_count: int = 0
     rate_limit_requests: int = 100  # requests per minute
     rate_limit_window: int = 60     # seconds
     is_active: bool = True
-    
 
-@dataclass 
+
+@dataclass
 class RateLimitInfo:
     """Rate limit tracking information."""
     requests: deque = field(default_factory=deque)
-    last_request: Optional[datetime] = None
-    blocked_until: Optional[datetime] = None
+    last_request: datetime | None = None
+    blocked_until: datetime | None = None
     total_requests: int = 0
     blocked_requests: int = 0
 
@@ -87,39 +86,39 @@ class RateLimitInfo:
 @dataclass
 class PIIDetectionResult:
     """PII detection result."""
-    detected_types: List[str]
-    locations: Dict[str, List[int]]  # type -> list of character positions
+    detected_types: list[str]
+    locations: dict[str, list[int]]  # type -> list of character positions
     masked_text: str
     risk_level: str  # low, medium, high
-    recommendations: List[str]
+    recommendations: list[str]
 
 
 class ModelSecurityValidator:
     """Validator for model security and integrity."""
-    
+
     def __init__(self):
         """Initialize model security validator."""
         self.trusted_sources = {
             'huggingface.co',
-            'pytorch.org', 
+            'pytorch.org',
             'tensorflow.org',
             'github.com',
             'localhost'  # For local development
         }
-        
-        self.known_model_hashes: Dict[str, str] = {
+
+        self.known_model_hashes: dict[str, str] = {
             # Add known good model hashes here
             'rfcc-base-8x': 'placeholder_hash',
             'context-compressor-base': 'placeholder_hash'
         }
-        
+
         # Malicious model signatures (simplified examples)
         self.malicious_signatures = {
             'backdoor_trigger_1': 'deadbeef',
             'data_exfiltration_1': 'cafebabe',
             'model_poisoning_1': 'feedface'
         }
-    
+
     def validate_model_source(self, model_path: str) -> SecurityScan:
         """Validate model source and integrity.
         
@@ -131,21 +130,21 @@ class ModelSecurityValidator:
         """
         scan_id = hashlib.md5(f"{model_path}{time.time()}".encode()).hexdigest()[:8]
         start_time = time.time()
-        
+
         vulnerabilities = []
         warnings = []
-        
+
         # Check if it's a URL or local path
         if model_path.startswith(('http://', 'https://')):
             # URL validation
             from urllib.parse import urlparse
-            
+
             parsed = urlparse(model_path)
             domain = parsed.netloc.lower()
-            
+
             # Check against trusted sources
             is_trusted = any(trusted in domain for trusted in self.trusted_sources)
-            
+
             if not is_trusted:
                 vulnerabilities.append({
                     'type': 'untrusted_source',
@@ -153,17 +152,17 @@ class ModelSecurityValidator:
                     'description': f"Model source not in trusted list: {domain}",
                     'recommendation': 'Use models from trusted sources only'
                 })
-            
+
             # Check for suspicious URLs
             if any(suspicious in model_path.lower() for suspicious in ['temp', 'tmp', 'cache']):
                 warnings.append("Model URL contains temporary path indicators")
-            
+
         else:
             # Local path validation
             if not os.path.exists(model_path):
                 vulnerabilities.append({
                     'type': 'missing_file',
-                    'severity': 'high', 
+                    'severity': 'high',
                     'description': f"Model file not found: {model_path}",
                     'recommendation': 'Verify model path and permissions'
                 })
@@ -175,10 +174,10 @@ class ModelSecurityValidator:
                     stat_info = path_obj.stat()
                     if stat_info.st_mode & 0o002:  # World writable
                         warnings.append("Model file is world-writable")
-        
+
         scan_time = time.time() - start_time
         passed = len(vulnerabilities) == 0
-        
+
         return SecurityScan(
             passed=passed,
             vulnerabilities=vulnerabilities,
@@ -186,8 +185,8 @@ class ModelSecurityValidator:
             scan_time=scan_time,
             scan_id=scan_id
         )
-    
-    def verify_model_checksum(self, model_path: str, expected_hash: Optional[str] = None) -> bool:
+
+    def verify_model_checksum(self, model_path: str, expected_hash: str | None = None) -> bool:
         """Verify model file integrity using checksums.
         
         Args:
@@ -199,24 +198,24 @@ class ModelSecurityValidator:
         """
         if not os.path.exists(model_path):
             return False
-        
+
         # Calculate SHA-256 hash
         sha256_hash = hashlib.sha256()
         try:
             with open(model_path, "rb") as f:
                 for chunk in iter(lambda: f.read(4096), b""):
                     sha256_hash.update(chunk)
-            
+
             calculated_hash = sha256_hash.hexdigest()
-            
+
             # If no expected hash, just log the calculated one
             if expected_hash is None:
                 logger.info(f"Model hash for {model_path}: {calculated_hash}")
                 return True
-            
+
             # Compare with expected hash
             return calculated_hash == expected_hash
-            
+
         except Exception as e:
             logger.error(f"Error calculating checksum for {model_path}: {e}")
             return False
@@ -224,12 +223,12 @@ class ModelSecurityValidator:
 
 class SandboxedExecution:
     """Sandboxed execution environment for model operations."""
-    
+
     def __init__(
         self,
         max_memory_mb: int = 4096,
         max_execution_time: int = 300,
-        allowed_imports: Optional[Set[str]] = None
+        allowed_imports: set[str] | None = None
     ):
         """Initialize sandboxed execution.
         
@@ -241,19 +240,19 @@ class SandboxedExecution:
         self.max_memory_mb = max_memory_mb
         self.max_execution_time = max_execution_time
         self.allowed_imports = allowed_imports or {
-            'torch', 'transformers', 'numpy', 'sklearn', 
+            'torch', 'transformers', 'numpy', 'sklearn',
             'sentence_transformers', 'datasets', 'tqdm',
             'einops', 'logging', 'json', 'os', 'sys'
         }
-        
+
         # Resource monitoring
         self._start_memory = None
         self._start_time = None
-    
+
     def __enter__(self):
         """Enter sandbox context."""
         self._start_time = time.time()
-        
+
         # Get initial memory usage
         try:
             import psutil
@@ -261,35 +260,35 @@ class SandboxedExecution:
             self._start_memory = process.memory_info().rss / 1024 / 1024  # MB
         except ImportError:
             self._start_memory = 0
-        
+
         # Install import hook for validation
         self._original_import = __builtins__.__import__
         __builtins__.__import__ = self._safe_import
-        
+
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit sandbox context."""
         # Restore original import
         __builtins__.__import__ = self._original_import
-        
+
         # Check resource usage
         if self._start_time:
             execution_time = time.time() - self._start_time
             if execution_time > self.max_execution_time:
                 logger.warning(f"Execution time exceeded limit: {execution_time:.1f}s")
-        
+
         try:
             import psutil
             process = psutil.Process()
             current_memory = process.memory_info().rss / 1024 / 1024  # MB
             memory_used = current_memory - (self._start_memory or 0)
-            
+
             if memory_used > self.max_memory_mb:
                 logger.warning(f"Memory usage exceeded limit: {memory_used:.1f}MB")
         except ImportError:
             pass
-    
+
     def _safe_import(self, name, *args, **kwargs):
         """Safe import function that validates allowed modules.
         
@@ -306,19 +305,19 @@ class SandboxedExecution:
         """
         # Check if module is allowed
         base_module = name.split('.')[0]
-        
+
         if base_module not in self.allowed_imports:
             logger.warning(f"Blocked import attempt: {name}")
             raise ImportError(f"Import of '{name}' not allowed in sandbox")
-        
+
         # Use original import
         return self._original_import(name, *args, **kwargs)
 
 
 class SecureStorage:
     """Secure storage for sensitive data and keys."""
-    
-    def __init__(self, storage_dir: Optional[str] = None):
+
+    def __init__(self, storage_dir: str | None = None):
         """Initialize secure storage.
         
         Args:
@@ -326,10 +325,10 @@ class SecureStorage:
         """
         if storage_dir is None:
             storage_dir = os.path.join(tempfile.gettempdir(), 'retrieval_free_secure')
-        
+
         self.storage_dir = Path(storage_dir)
         self.storage_dir.mkdir(mode=0o700, parents=True, exist_ok=True)  # Owner only
-    
+
     def store_api_key(self, service: str, api_key: str) -> bool:
         """Securely store API key.
         
@@ -342,21 +341,21 @@ class SecureStorage:
         """
         try:
             key_file = self.storage_dir / f"{service}_key"
-            
+
             # Simple encryption (in production, use proper encryption)
             encrypted_key = self._simple_encrypt(api_key)
-            
+
             with open(key_file, 'w', mode=0o600) as f:  # Owner read/write only
                 f.write(encrypted_key)
-            
+
             logger.info(f"Stored API key for {service}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to store API key for {service}: {e}")
             return False
-    
-    def retrieve_api_key(self, service: str) -> Optional[str]:
+
+    def retrieve_api_key(self, service: str) -> str | None:
         """Retrieve stored API key.
         
         Args:
@@ -367,19 +366,19 @@ class SecureStorage:
         """
         try:
             key_file = self.storage_dir / f"{service}_key"
-            
+
             if not key_file.exists():
                 return None
-            
-            with open(key_file, 'r') as f:
+
+            with open(key_file) as f:
                 encrypted_key = f.read().strip()
-            
+
             return self._simple_decrypt(encrypted_key)
-            
+
         except Exception as e:
             logger.error(f"Failed to retrieve API key for {service}: {e}")
             return None
-    
+
     def _simple_encrypt(self, data: str) -> str:
         """Simple encryption (placeholder - use proper encryption in production).
         
@@ -392,7 +391,7 @@ class SecureStorage:
         # This is a placeholder - use proper encryption like Fernet in production
         import base64
         return base64.b64encode(data.encode()).decode()
-    
+
     def _simple_decrypt(self, encrypted_data: str) -> str:
         """Simple decryption (placeholder - use proper decryption in production).
         
@@ -409,8 +408,8 @@ class SecureStorage:
 
 class AuditLogger:
     """Audit logger for security events."""
-    
-    def __init__(self, log_file: Optional[str] = None):
+
+    def __init__(self, log_file: str | None = None):
         """Initialize audit logger.
         
         Args:
@@ -420,25 +419,25 @@ class AuditLogger:
             log_dir = Path.home() / '.retrieval_free' / 'logs'
             log_dir.mkdir(parents=True, exist_ok=True)
             log_file = log_dir / 'audit.log'
-        
+
         self.log_file = Path(log_file)
-        
+
         # Set up audit logger
         self.audit_logger = logging.getLogger('retrieval_free.audit')
         self.audit_logger.setLevel(logging.INFO)
-        
+
         # File handler
         file_handler = logging.FileHandler(self.log_file)
         file_handler.setLevel(logging.INFO)
-        
+
         # Formatter
         formatter = logging.Formatter(
             '%(asctime)s - %(levelname)s - %(message)s'
         )
         file_handler.setFormatter(formatter)
-        
+
         self.audit_logger.addHandler(file_handler)
-    
+
     def log_model_load(self, model_name: str, source: str, user: str = None) -> None:
         """Log model loading event.
         
@@ -450,12 +449,12 @@ class AuditLogger:
         self.audit_logger.info(
             f"MODEL_LOAD - model={model_name}, source={source}, user={user or 'unknown'}"
         )
-    
+
     def log_compression_request(
-        self, 
-        text_length: int, 
-        model: str, 
-        parameters: Dict[str, Any],
+        self,
+        text_length: int,
+        model: str,
+        parameters: dict[str, Any],
         user: str = None
     ) -> None:
         """Log compression request.
@@ -470,11 +469,11 @@ class AuditLogger:
             f"COMPRESSION_REQUEST - length={text_length}, model={model}, "
             f"params={json.dumps(parameters)}, user={user or 'unknown'}"
         )
-    
+
     def log_security_event(
-        self, 
-        event_type: str, 
-        description: str, 
+        self,
+        event_type: str,
+        description: str,
         severity: str = "info"
     ) -> None:
         """Log security event.
@@ -490,9 +489,9 @@ class AuditLogger:
             'error': logging.ERROR,
             'critical': logging.CRITICAL
         }
-        
+
         level = level_map.get(severity.lower(), logging.INFO)
-        
+
         self.audit_logger.log(
             level,
             f"SECURITY_EVENT - type={event_type}, severity={severity}, desc={description}"
@@ -501,16 +500,16 @@ class AuditLogger:
 
 class AuthenticationManager:
     """Manages API keys and authentication."""
-    
+
     def __init__(self):
         """Initialize authentication manager."""
-        self.api_keys: Dict[str, APIKey] = {}
-        self.rate_limits: Dict[str, RateLimitInfo] = defaultdict(RateLimitInfo)
+        self.api_keys: dict[str, APIKey] = {}
+        self.rate_limits: dict[str, RateLimitInfo] = defaultdict(RateLimitInfo)
         self._lock = threading.RLock()
-    
+
     def generate_api_key(
         self,
-        permissions: Optional[Set[str]] = None,
+        permissions: set[str] | None = None,
         rate_limit_requests: int = 100,
         rate_limit_window: int = 60
     ) -> Tuple[str, str]:
@@ -528,9 +527,9 @@ class AuthenticationManager:
             key_id = secrets.token_urlsafe(8)
             api_key = secrets.token_urlsafe(32)
             key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-            
+
             permissions = permissions or {'compress', 'decompress', 'health'}
-            
+
             self.api_keys[key_id] = APIKey(
                 key_id=key_id,
                 key_hash=key_hash,
@@ -539,11 +538,11 @@ class AuthenticationManager:
                 rate_limit_requests=rate_limit_requests,
                 rate_limit_window=rate_limit_window
             )
-            
+
             logger.info(f"Generated API key: {key_id}")
             return key_id, api_key
-    
-    def validate_api_key(self, api_key: str) -> Optional[APIKey]:
+
+    def validate_api_key(self, api_key: str) -> APIKey | None:
         """Validate an API key.
         
         Args:
@@ -553,17 +552,17 @@ class AuthenticationManager:
             APIKey object if valid, None otherwise
         """
         key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-        
+
         with self._lock:
             for key_info in self.api_keys.values():
                 if key_info.key_hash == key_hash and key_info.is_active:
                     key_info.last_used = datetime.now()
                     key_info.usage_count += 1
                     return key_info
-        
+
         logger.warning(f"Invalid API key attempted: {key_hash[:8]}...")
         return None
-    
+
     def check_rate_limit(self, key_id: str, api_key_info: APIKey) -> bool:
         """Check if request is within rate limit.
         
@@ -577,17 +576,17 @@ class AuthenticationManager:
         with self._lock:
             rate_info = self.rate_limits[key_id]
             current_time = datetime.now()
-            
+
             # Check if currently blocked
             if rate_info.blocked_until and current_time < rate_info.blocked_until:
                 rate_info.blocked_requests += 1
                 return False
-            
+
             # Clean up old requests outside the window
             window_start = current_time - timedelta(seconds=api_key_info.rate_limit_window)
             while rate_info.requests and rate_info.requests[0] < window_start:
                 rate_info.requests.popleft()
-            
+
             # Check if over limit
             if len(rate_info.requests) >= api_key_info.rate_limit_requests:
                 # Block for the rate limit window
@@ -595,14 +594,14 @@ class AuthenticationManager:
                 rate_info.blocked_requests += 1
                 logger.warning(f"Rate limit exceeded for key: {key_id}")
                 return False
-            
+
             # Add current request
             rate_info.requests.append(current_time)
             rate_info.total_requests += 1
             rate_info.last_request = current_time
-            
+
             return True
-    
+
     def revoke_api_key(self, key_id: str) -> bool:
         """Revoke an API key.
         
@@ -618,8 +617,8 @@ class AuthenticationManager:
                 logger.info(f"Revoked API key: {key_id}")
                 return True
             return False
-    
-    def get_usage_stats(self, key_id: str) -> Optional[Dict[str, Any]]:
+
+    def get_usage_stats(self, key_id: str) -> dict[str, Any] | None:
         """Get usage statistics for an API key.
         
         Args:
@@ -631,10 +630,10 @@ class AuthenticationManager:
         with self._lock:
             if key_id not in self.api_keys:
                 return None
-            
+
             key_info = self.api_keys[key_id]
             rate_info = self.rate_limits[key_id]
-            
+
             return {
                 'key_id': key_id,
                 'created_at': key_info.created_at.isoformat(),
@@ -655,13 +654,13 @@ class AuthenticationManager:
 
 class EnhancedInputSanitizer:
     """Enhanced input sanitization with PII detection and malicious content filtering."""
-    
+
     def __init__(self):
         """Initialize input sanitizer."""
         self.pii_patterns = PII_PATTERNS
         self.malicious_patterns = MALICIOUS_PATTERNS
-    
-    def sanitize_input(self, text: str, mask_pii: bool = True) -> Dict[str, Any]:
+
+    def sanitize_input(self, text: str, mask_pii: bool = True) -> dict[str, Any]:
         """Sanitize input text.
         
         Args:
@@ -673,21 +672,21 @@ class EnhancedInputSanitizer:
         """
         # Detect PII
         pii_result = self.detect_pii(text)
-        
+
         # Detect malicious content
         malicious_result = self.detect_malicious_content(text)
-        
+
         # Sanitize text
         sanitized_text = text
-        
+
         # Mask PII if requested
         if mask_pii:
             sanitized_text = pii_result.masked_text
-        
+
         # Remove malicious content
         for pattern in self.malicious_patterns:
             sanitized_text = re.sub(pattern, '[REMOVED]', sanitized_text, flags=re.IGNORECASE | re.DOTALL)
-        
+
         return {
             'original_length': len(text),
             'sanitized_text': sanitized_text,
@@ -698,7 +697,7 @@ class EnhancedInputSanitizer:
             'risk_score': self._calculate_risk_score(pii_result, malicious_result),
             'recommendations': pii_result.recommendations + malicious_result.get('recommendations', [])
         }
-    
+
     def detect_pii(self, text: str) -> PIIDetectionResult:
         """Detect personally identifiable information.
         
@@ -712,32 +711,32 @@ class EnhancedInputSanitizer:
         locations = {}
         masked_text = text
         recommendations = []
-        
+
         for pii_type, pattern in self.pii_patterns.items():
             matches = list(re.finditer(pattern, text, re.IGNORECASE))
-            
+
             if matches:
                 detected_types.append(pii_type)
                 locations[pii_type] = [match.start() for match in matches]
-                
+
                 # Mask the PII in text
                 for match in reversed(matches):  # Reverse to maintain positions
                     mask_length = len(match.group())
                     mask = '[' + pii_type.upper() + '_MASKED]'
                     masked_text = masked_text[:match.start()] + mask + masked_text[match.end():]
-                
+
                 recommendations.append(f"Consider removing or further anonymizing {pii_type} data")
-        
+
         # Determine risk level
         high_risk_types = {'ssn', 'credit_card', 'bank_account', 'passport'}
         medium_risk_types = {'email', 'phone', 'driver_license', 'date_of_birth'}
-        
+
         risk_level = 'low'
         if any(pii_type in high_risk_types for pii_type in detected_types):
             risk_level = 'high'
         elif any(pii_type in medium_risk_types for pii_type in detected_types):
             risk_level = 'medium'
-        
+
         return PIIDetectionResult(
             detected_types=detected_types,
             locations=locations,
@@ -745,8 +744,8 @@ class EnhancedInputSanitizer:
             risk_level=risk_level,
             recommendations=recommendations
         )
-    
-    def detect_malicious_content(self, text: str) -> Dict[str, Any]:
+
+    def detect_malicious_content(self, text: str) -> dict[str, Any]:
         """Detect potentially malicious content.
         
         Args:
@@ -757,19 +756,19 @@ class EnhancedInputSanitizer:
         """
         patterns_found = []
         recommendations = []
-        
+
         for pattern in self.malicious_patterns:
             if re.search(pattern, text, re.IGNORECASE | re.DOTALL):
                 patterns_found.append(pattern)
                 recommendations.append(f"Suspicious pattern detected: {pattern}")
-        
+
         return {
             'patterns_found': patterns_found,
             'risk_level': 'high' if patterns_found else 'low',
             'recommendations': recommendations
         }
-    
-    def _calculate_risk_score(self, pii_result: PIIDetectionResult, malicious_result: Dict[str, Any]) -> float:
+
+    def _calculate_risk_score(self, pii_result: PIIDetectionResult, malicious_result: dict[str, Any]) -> float:
         """Calculate overall risk score.
         
         Args:
@@ -780,7 +779,7 @@ class EnhancedInputSanitizer:
             Risk score between 0.0 and 1.0
         """
         score = 0.0
-        
+
         # PII risk scoring
         pii_weights = {
             'low': 0.1,
@@ -788,15 +787,15 @@ class EnhancedInputSanitizer:
             'high': 0.6
         }
         score += pii_weights.get(pii_result.risk_level, 0.0)
-        
+
         # Malicious content scoring
         if malicious_result['patterns_found']:
             score += 0.4  # High penalty for malicious patterns
-        
+
         return min(score, 1.0)
 
 
-def require_authentication(permissions: Optional[Set[str]] = None):
+def require_authentication(permissions: set[str] | None = None):
     """Decorator to require API key authentication.
     
     Args:
@@ -807,18 +806,18 @@ def require_authentication(permissions: Optional[Set[str]] = None):
         def wrapper(*args, **kwargs):
             # Extract API key from kwargs or environment
             api_key = kwargs.pop('api_key', None) or os.environ.get('RETRIEVAL_FREE_API_KEY')
-            
+
             if not api_key:
                 raise SecurityError("API key required", error_code="AUTH_MISSING_KEY")
-            
+
             # Get authentication manager
             auth_manager = get_auth_manager()
-            
+
             # Validate API key
             key_info = auth_manager.validate_api_key(api_key)
             if not key_info:
                 raise SecurityError("Invalid API key", error_code="AUTH_INVALID_KEY")
-            
+
             # Check permissions
             if permissions and not permissions.issubset(key_info.permissions):
                 missing = permissions - key_info.permissions
@@ -826,23 +825,23 @@ def require_authentication(permissions: Optional[Set[str]] = None):
                     f"Insufficient permissions. Missing: {missing}",
                     error_code="AUTH_INSUFFICIENT_PERMISSIONS"
                 )
-            
+
             # Check rate limit
             if not auth_manager.check_rate_limit(key_info.key_id, key_info):
                 raise SecurityError("Rate limit exceeded", error_code="AUTH_RATE_LIMIT_EXCEEDED")
-            
+
             # Add key info to kwargs for use in function
             kwargs['_api_key_info'] = key_info
-            
+
             return func(*args, **kwargs)
-        
+
         return wrapper
     return decorator
 
 
 class SecurityError(Exception):
     """Security-related error."""
-    
+
     def __init__(self, message: str, error_code: str = "SECURITY_ERROR"):
         super().__init__(message)
         self.error_code = error_code
@@ -850,7 +849,7 @@ class SecurityError(Exception):
 
 def scan_for_vulnerabilities(
     code_dir: str,
-    exclude_patterns: Optional[List[str]] = None
+    exclude_patterns: list[str] | None = None
 ) -> SecurityScan:
     """Scan codebase for security vulnerabilities.
     
@@ -863,27 +862,27 @@ def scan_for_vulnerabilities(
     """
     scan_id = hashlib.md5(f"{code_dir}{time.time()}".encode()).hexdigest()[:8]
     start_time = time.time()
-    
+
     vulnerabilities = []
     warnings = []
-    
+
     exclude_patterns = exclude_patterns or ['*test*', '*__pycache__*', '*.pyc']
-    
+
     try:
         # Use bandit for Python security scanning if available
         try:
-            import subprocess
             import json
-            
+            import subprocess
+
             result = subprocess.run([
                 'bandit', '-r', code_dir, '-f', 'json',
                 '--exclude', ','.join(exclude_patterns)
             ], capture_output=True, text=True, timeout=60)
-            
+
             if result.returncode == 0:
                 # Parse bandit output
                 bandit_results = json.loads(result.stdout)
-                
+
                 for issue in bandit_results.get('results', []):
                     vulnerabilities.append({
                         'type': 'bandit_finding',
@@ -893,24 +892,24 @@ def scan_for_vulnerabilities(
                         'line': issue.get('line_number', 0),
                         'recommendation': 'Review flagged code for security issues'
                     })
-            
+
         except (ImportError, subprocess.TimeoutExpired, FileNotFoundError):
             # Bandit not available, do basic checks
             warnings.append("Bandit security scanner not available")
-            
+
             # Basic pattern-based checks
             for root, dirs, files in os.walk(code_dir):
                 for file in files:
                     if file.endswith('.py'):
                         file_path = os.path.join(root, file)
                         _check_file_for_issues(file_path, vulnerabilities, warnings)
-    
+
     except Exception as e:
         warnings.append(f"Error during vulnerability scan: {e}")
-    
+
     scan_time = time.time() - start_time
     passed = len(vulnerabilities) == 0
-    
+
     return SecurityScan(
         passed=passed,
         vulnerabilities=vulnerabilities,
@@ -921,15 +920,15 @@ def scan_for_vulnerabilities(
 
 
 def _check_file_for_issues(
-    file_path: str, 
-    vulnerabilities: List[Dict[str, Any]], 
-    warnings: List[str]
+    file_path: str,
+    vulnerabilities: list[dict[str, Any]],
+    warnings: list[str]
 ) -> None:
     """Basic security checks for a Python file."""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             content = f.read()
-        
+
         # Check for potential security issues using enhanced patterns
         for pattern in MALICIOUS_PATTERNS:
             if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
@@ -940,14 +939,14 @@ def _check_file_for_issues(
                     'file': file_path,
                     'recommendation': 'Review and validate usage'
                 })
-    
+
     except Exception as e:
         warnings.append(f"Could not scan {file_path}: {e}")
 
 
 # Global instances
-_auth_manager: Optional[AuthenticationManager] = None
-_input_sanitizer: Optional[EnhancedInputSanitizer] = None
+_auth_manager: AuthenticationManager | None = None
+_input_sanitizer: EnhancedInputSanitizer | None = None
 
 
 def get_auth_manager() -> AuthenticationManager:

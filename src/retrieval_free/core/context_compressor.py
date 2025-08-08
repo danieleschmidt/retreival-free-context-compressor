@@ -270,7 +270,11 @@ class ContextCompressor(CompressorBase):
             n_clusters = max(1, len(embeddings) // int(self.compression_ratio))
         
         # Use K-means clustering
-        embeddings_np = embeddings.cpu().numpy()
+        embeddings_np = embeddings.detach().cpu().numpy()
+        
+        # Ensure 2D array for sklearn
+        if embeddings_np.ndim == 1:
+            embeddings_np = embeddings_np.reshape(1, -1)
         
         if len(embeddings_np) <= n_clusters:
             # If we have fewer embeddings than desired clusters, use all
@@ -403,6 +407,13 @@ class ContextCompressor(CompressorBase):
                         )
                     else:
                         source_range = (0, 0)
+                    
+                    # Ensure center is 1D for MegaToken
+                    if center.dim() > 1:
+                        center = center.flatten()
+                    elif center.dim() == 0:
+                        center = center.unsqueeze(0)
+                    
                     
                     mega_token = MegaToken(
                         embedding=center,

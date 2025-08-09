@@ -3,7 +3,7 @@
 def main():
     """Main CLI entry point."""
     from .plugins import CLIInterface
-    
+
     cli = CLIInterface()
     cli.main()
 

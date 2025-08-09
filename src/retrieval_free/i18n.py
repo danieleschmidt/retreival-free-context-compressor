@@ -1,24 +1,22 @@
 """Internationalization and localization support."""
 
-import os
 import json
 import logging
-from typing import Dict, Any, Optional, List
-from pathlib import Path
-import gettext
 from functools import lru_cache
+from pathlib import Path
+
 
 logger = logging.getLogger(__name__)
 
 
 class LocalizationManager:
     """Manager for internationalization and localization."""
-    
+
     def __init__(
         self,
-        locales_dir: Optional[str] = None,
+        locales_dir: str | None = None,
         default_locale: str = "en",
-        supported_locales: Optional[List[str]] = None
+        supported_locales: list[str] | None = None
     ):
         """Initialize localization manager.
         
@@ -29,32 +27,32 @@ class LocalizationManager:
         """
         self.default_locale = default_locale
         self.current_locale = default_locale
-        
+
         if locales_dir is None:
             self.locales_dir = Path(__file__).parent / "locales"
         else:
             self.locales_dir = Path(locales_dir)
-        
+
         self.supported_locales = supported_locales or [
             "en", "es", "fr", "de", "ja", "zh", "pt", "ru", "it", "ko"
         ]
-        
+
         # Translation cache
-        self._translations: Dict[str, Dict[str, str]] = {}
+        self._translations: dict[str, dict[str, str]] = {}
         self._load_translations()
-    
+
     def _load_translations(self) -> None:
         """Load all translation files."""
         for locale in self.supported_locales:
             self._load_locale_translations(locale)
-    
+
     def _load_locale_translations(self, locale: str) -> None:
         """Load translations for a specific locale."""
         locale_file = self.locales_dir / f"{locale}.json"
-        
+
         if locale_file.exists():
             try:
-                with open(locale_file, 'r', encoding='utf-8') as f:
+                with open(locale_file, encoding='utf-8') as f:
                     translations = json.load(f)
                     self._translations[locale] = translations
                     logger.debug(f"Loaded {len(translations)} translations for {locale}")
@@ -64,11 +62,11 @@ class LocalizationManager:
         else:
             # Create empty translation dict
             self._translations[locale] = {}
-            
+
             # Create default translations for English
             if locale == "en":
                 self._create_default_translations(locale)
-    
+
     def _create_default_translations(self, locale: str) -> None:
         """Create default English translations."""
         default_translations = {
@@ -80,7 +78,7 @@ class LocalizationManager:
             "error": "Error",
             "warning": "Warning",
             "info": "Information",
-            
+
             # Compression
             "compressing_text": "Compressing text",
             "compression_complete": "Compression complete",
@@ -89,56 +87,56 @@ class LocalizationManager:
             "original_tokens": "Original tokens",
             "compressed_tokens": "Compressed tokens",
             "processing_time": "Processing time",
-            
+
             # Validation
             "validation_failed": "Validation failed",
             "invalid_input": "Invalid input",
             "input_too_long": "Input text is too long",
             "malicious_content": "Potentially malicious content detected",
             "security_violation": "Security violation",
-            
+
             # Models
             "loading_model": "Loading model",
             "model_loaded": "Model loaded successfully",
             "model_load_failed": "Failed to load model",
             "model_not_found": "Model not found",
-            
+
             # Performance
             "cache_hit": "Cache hit",
             "cache_miss": "Cache miss",
             "memory_usage": "Memory usage",
             "gpu_memory": "GPU memory",
             "throughput": "Throughput",
-            
+
             # File operations
             "file_not_found": "File not found",
             "permission_denied": "Permission denied",
             "invalid_file_format": "Invalid file format",
-            
+
             # Network
             "connection_error": "Connection error",
             "timeout": "Operation timed out",
             "download_failed": "Download failed",
-            
+
             # Configuration
             "config_error": "Configuration error",
             "invalid_parameter": "Invalid parameter",
             "missing_parameter": "Missing required parameter"
         }
-        
+
         self._translations[locale] = default_translations
-        
+
         # Save to file
         self.locales_dir.mkdir(parents=True, exist_ok=True)
         locale_file = self.locales_dir / f"{locale}.json"
-        
+
         try:
             with open(locale_file, 'w', encoding='utf-8') as f:
                 json.dump(default_translations, f, indent=2, ensure_ascii=False)
             logger.info(f"Created default translations file: {locale_file}")
         except Exception as e:
             logger.warning(f"Failed to save default translations: {e}")
-    
+
     def set_locale(self, locale: str) -> bool:
         """Set current locale.
         
@@ -155,7 +153,7 @@ class LocalizationManager:
         else:
             logger.warning(f"Unsupported locale: {locale}")
             return False
-    
+
     def get_locale(self) -> str:
         """Get current locale.
         
@@ -163,21 +161,21 @@ class LocalizationManager:
             Current locale code
         """
         return self.current_locale
-    
-    def get_supported_locales(self) -> List[str]:
+
+    def get_supported_locales(self) -> list[str]:
         """Get list of supported locales.
         
         Returns:
             List of supported locale codes
         """
         return self.supported_locales.copy()
-    
+
     @lru_cache(maxsize=1000)
     def translate(
-        self, 
-        key: str, 
-        locale: Optional[str] = None,
-        default: Optional[str] = None,
+        self,
+        key: str,
+        locale: str | None = None,
+        default: str | None = None,
         **kwargs
     ) -> str:
         """Translate a key to the current or specified locale.
@@ -192,7 +190,7 @@ class LocalizationManager:
             Translated text
         """
         target_locale = locale or self.current_locale
-        
+
         # Try target locale
         if target_locale in self._translations:
             translation = self._translations[target_locale].get(key)
@@ -202,7 +200,7 @@ class LocalizationManager:
                 except KeyError as e:
                     logger.warning(f"Missing format key {e} in translation '{key}'")
                     return translation
-        
+
         # Fallback to default locale
         if target_locale != self.default_locale:
             if self.default_locale in self._translations:
@@ -212,18 +210,18 @@ class LocalizationManager:
                         return translation.format(**kwargs) if kwargs else translation
                     except KeyError:
                         return translation
-        
+
         # Use provided default or key itself
         fallback = default or key
         try:
             return fallback.format(**kwargs) if kwargs else fallback
         except KeyError:
             return fallback
-    
+
     def add_translation(
-        self, 
-        locale: str, 
-        key: str, 
+        self,
+        locale: str,
+        key: str,
         translation: str
     ) -> None:
         """Add a translation for a specific locale.
@@ -235,16 +233,16 @@ class LocalizationManager:
         """
         if locale not in self._translations:
             self._translations[locale] = {}
-        
+
         self._translations[locale][key] = translation
-        
+
         # Clear cache
         self.translate.cache_clear()
-    
+
     def add_translations(
-        self, 
-        locale: str, 
-        translations: Dict[str, str]
+        self,
+        locale: str,
+        translations: dict[str, str]
     ) -> None:
         """Add multiple translations for a locale.
         
@@ -254,13 +252,13 @@ class LocalizationManager:
         """
         if locale not in self._translations:
             self._translations[locale] = {}
-        
+
         self._translations[locale].update(translations)
-        
+
         # Clear cache
         self.translate.cache_clear()
-    
-    def get_completion_status(self) -> Dict[str, float]:
+
+    def get_completion_status(self) -> dict[str, float]:
         """Get translation completion status for all locales.
         
         Returns:
@@ -268,10 +266,10 @@ class LocalizationManager:
         """
         if not self._translations.get(self.default_locale):
             return {}
-        
+
         base_count = len(self._translations[self.default_locale])
         status = {}
-        
+
         for locale in self.supported_locales:
             if locale in self._translations:
                 locale_count = len(self._translations[locale])
@@ -279,9 +277,9 @@ class LocalizationManager:
                 status[locale] = completion
             else:
                 status[locale] = 0.0
-        
+
         return status
-    
+
     def export_for_translation(self, locale: str, output_file: str) -> None:
         """Export untranslated keys for a locale.
         
@@ -292,12 +290,12 @@ class LocalizationManager:
         if self.default_locale not in self._translations:
             logger.error("No base translations found")
             return
-        
+
         base_keys = set(self._translations[self.default_locale].keys())
         translated_keys = set(self._translations.get(locale, {}).keys())
-        
+
         untranslated = base_keys - translated_keys
-        
+
         export_data = {
             "locale": locale,
             "untranslated_count": len(untranslated),
@@ -308,21 +306,21 @@ class LocalizationManager:
                 for key in sorted(untranslated)
             }
         }
-        
+
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(export_data, f, indent=2, ensure_ascii=False)
-        
+
         logger.info(f"Exported {len(untranslated)} untranslated keys to {output_file}")
 
 
 # Global localization manager instance
-_localization_manager: Optional[LocalizationManager] = None
+_localization_manager: LocalizationManager | None = None
 
 
 def init_localization(
-    locales_dir: Optional[str] = None,
+    locales_dir: str | None = None,
     default_locale: str = "en",
-    supported_locales: Optional[List[str]] = None
+    supported_locales: list[str] | None = None
 ) -> LocalizationManager:
     """Initialize global localization manager.
     
@@ -383,9 +381,9 @@ def get_locale() -> str:
 
 
 def translate(
-    key: str, 
-    locale: Optional[str] = None,
-    default: Optional[str] = None,
+    key: str,
+    locale: str | None = None,
+    default: str | None = None,
     **kwargs
 ) -> str:
     """Translate a key to the current or specified locale.
@@ -419,14 +417,14 @@ def detect_system_locale() -> str:
         if system_locale:
             # Extract language code (e.g., 'en_US' -> 'en')
             lang_code = system_locale.split('_')[0].lower()
-            
+
             # Check if supported
             manager = get_localization_manager()
             if lang_code in manager.get_supported_locales():
                 return lang_code
     except Exception as e:
         logger.debug(f"Failed to detect system locale: {e}")
-    
+
     return "en"  # Fallback to English
 
 

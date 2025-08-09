@@ -1,20 +1,21 @@
 """Base compressor interface."""
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Union
-import torch
 from dataclasses import dataclass
+from typing import Any
+
+import torch
 
 
 @dataclass
 class MegaToken:
     """Dense representation of compressed text segments."""
-    
+
     embedding: torch.Tensor  # Dense vector representation
-    metadata: Dict[str, Any]  # Source info, attention weights, etc.
+    metadata: dict[str, Any]  # Source info, attention weights, etc.
     source_range: tuple[int, int]  # Original token positions
     compression_ratio: float  # How much this represents
-    
+
     def __post_init__(self):
         """Validate mega-token structure."""
         if self.embedding.dim() != 1:
@@ -23,22 +24,22 @@ class MegaToken:
             raise ValueError("Compression ratio must be positive")
 
 
-@dataclass 
+@dataclass
 class CompressionResult:
     """Result of document compression."""
-    
-    mega_tokens: List[MegaToken]
+
+    mega_tokens: list[MegaToken]
     original_length: int
     compressed_length: int
     compression_ratio: float
     processing_time: float
-    metadata: Dict[str, Any]
-    
+    metadata: dict[str, Any]
+
     @property
     def total_tokens(self) -> int:
         """Total number of mega-tokens."""
         return len(self.mega_tokens)
-    
+
     @property
     def memory_savings(self) -> float:
         """Estimated memory savings percentage."""
@@ -47,11 +48,11 @@ class CompressionResult:
 
 class CompressorBase(ABC):
     """Abstract base class for all document compressors."""
-    
+
     def __init__(
         self,
         model_name: str,
-        device: Optional[str] = None,
+        device: str | None = None,
         max_length: int = 256000,
         compression_ratio: float = 8.0
     ):
@@ -69,11 +70,11 @@ class CompressorBase(ABC):
         self.compression_ratio = compression_ratio
         self._model = None
         self._tokenizer = None
-    
+
     @abstractmethod
     def compress(
-        self, 
-        text: Union[str, List[str]], 
+        self,
+        text: str | list[str],
         **kwargs
     ) -> CompressionResult:
         """Compress input text into mega-tokens.
@@ -86,11 +87,11 @@ class CompressorBase(ABC):
             CompressionResult with mega-tokens and metadata
         """
         pass
-    
+
     @abstractmethod
     def decompress(
-        self, 
-        mega_tokens: List[MegaToken],
+        self,
+        mega_tokens: list[MegaToken],
         **kwargs
     ) -> str:
         """Reconstruct text from mega-tokens (approximate).
@@ -103,7 +104,7 @@ class CompressorBase(ABC):
             Reconstructed text (may be lossy)
         """
         pass
-    
+
     def count_tokens(self, text: str) -> int:
         """Count tokens in input text.
         
@@ -117,12 +118,12 @@ class CompressorBase(ABC):
             # Rough approximation: ~4 chars per token
             return len(text) // 4
         return len(self._tokenizer.encode(text))
-    
+
     def get_compression_ratio(self) -> float:
         """Get current compression ratio."""
         return self.compression_ratio
-    
-    def estimate_memory_usage(self, text_length: int) -> Dict[str, float]:
+
+    def estimate_memory_usage(self, text_length: int) -> dict[str, float]:
         """Estimate memory usage for compression.
         
         Args:
@@ -134,19 +135,19 @@ class CompressorBase(ABC):
         # Rough estimates based on transformer memory patterns
         input_memory = text_length * 0.004  # ~4KB per token
         compressed_memory = (text_length / self.compression_ratio) * 0.016  # Denser
-        
+
         return {
             'input_mb': input_memory,
             'compressed_mb': compressed_memory,
             'peak_mb': input_memory * 1.5,  # Peak during processing
             'savings_mb': input_memory - compressed_memory
         }
-    
+
     @abstractmethod
     def load_model(self) -> None:
         """Load compression model and tokenizer."""
         pass
-    
+
     def to(self, device: str) -> 'CompressorBase':
         """Move compressor to specified device.
         
@@ -160,7 +161,7 @@ class CompressorBase(ABC):
         if self._model is not None:
             self._model = self._model.to(device)
         return self
-    
+
     def __repr__(self) -> str:
         """String representation."""
         return (

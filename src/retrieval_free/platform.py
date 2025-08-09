@@ -1,68 +1,69 @@
 """Cross-platform compatibility utilities."""
 
-import os
-import sys
-import platform
 import logging
-from typing import Dict, List, Any, Optional, Tuple
-from pathlib import Path
-import subprocess
+import os
+import platform
 import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
 
 logger = logging.getLogger(__name__)
 
 
 class PlatformInfo:
     """Information about the current platform."""
-    
+
     def __init__(self):
         """Initialize platform information."""
         self._system = platform.system().lower()
         self._machine = platform.machine().lower()
         self._python_version = sys.version_info
         self._platform_details = self._get_platform_details()
-    
+
     @property
     def system(self) -> str:
         """Get system name (linux, windows, darwin)."""
         return self._system
-    
+
     @property
     def is_windows(self) -> bool:
         """Check if running on Windows."""
         return self._system == "windows"
-    
+
     @property
     def is_linux(self) -> bool:
         """Check if running on Linux."""
         return self._system == "linux"
-    
+
     @property
     def is_macos(self) -> bool:
         """Check if running on macOS."""
         return self._system == "darwin"
-    
+
     @property
     def architecture(self) -> str:
         """Get system architecture."""
         return self._machine
-    
+
     @property
     def is_64bit(self) -> bool:
         """Check if running on 64-bit architecture."""
         return self._machine in ["x86_64", "amd64", "arm64", "aarch64"]
-    
+
     @property
-    def python_version(self) -> Tuple[int, int, int]:
+    def python_version(self) -> tuple[int, int, int]:
         """Get Python version tuple."""
         return (self._python_version.major, self._python_version.minor, self._python_version.micro)
-    
+
     @property
     def python_version_string(self) -> str:
         """Get Python version as string."""
         return f"{self._python_version.major}.{self._python_version.minor}.{self._python_version.micro}"
-    
-    def _get_platform_details(self) -> Dict[str, Any]:
+
+    def _get_platform_details(self) -> dict[str, Any]:
         """Get detailed platform information."""
         details = {
             "system": platform.system(),
@@ -73,7 +74,7 @@ class PlatformInfo:
             "python_version": platform.python_version(),
             "python_implementation": platform.python_implementation(),
         }
-        
+
         # Add OS-specific details
         if self.is_linux:
             try:
@@ -87,26 +88,26 @@ class PlatformInfo:
             except ImportError:
                 # Fallback for older systems
                 try:
-                    with open("/etc/os-release", "r") as f:
+                    with open("/etc/os-release") as f:
                         os_release = f.read()
                         details["os_release"] = os_release
                 except FileNotFoundError:
                     pass
-        
+
         elif self.is_windows:
             details.update({
                 "windows_edition": platform.win32_edition(),
                 "windows_version": platform.win32_ver(),
             })
-        
+
         elif self.is_macos:
             details.update({
                 "mac_version": platform.mac_ver(),
             })
-        
+
         return details
-    
-    def get_info_dict(self) -> Dict[str, Any]:
+
+    def get_info_dict(self) -> dict[str, Any]:
         """Get platform information as dictionary."""
         return {
             "system": self.system,
@@ -119,15 +120,15 @@ class PlatformInfo:
 
 class PathManager:
     """Cross-platform path management."""
-    
+
     def __init__(self):
         """Initialize path manager."""
         self.platform_info = PlatformInfo()
-    
+
     def get_home_dir(self) -> Path:
         """Get user home directory."""
         return Path.home()
-    
+
     def get_config_dir(self, app_name: str = "retrieval_free") -> Path:
         """Get application configuration directory.
         
@@ -146,9 +147,9 @@ class PathManager:
         else:
             # Linux: ~/.config/AppName
             config_dir = Path(os.environ.get("XDG_CONFIG_HOME", self.get_home_dir() / ".config")) / app_name
-        
+
         return config_dir
-    
+
     def get_data_dir(self, app_name: str = "retrieval_free") -> Path:
         """Get application data directory.
         
@@ -167,9 +168,9 @@ class PathManager:
         else:
             # Linux: ~/.local/share/AppName
             data_dir = Path(os.environ.get("XDG_DATA_HOME", self.get_home_dir() / ".local" / "share")) / app_name
-        
+
         return data_dir
-    
+
     def get_cache_dir(self, app_name: str = "retrieval_free") -> Path:
         """Get application cache directory.
         
@@ -188,14 +189,14 @@ class PathManager:
         else:
             # Linux: ~/.cache/AppName
             cache_dir = Path(os.environ.get("XDG_CACHE_HOME", self.get_home_dir() / ".cache")) / app_name
-        
+
         return cache_dir
-    
+
     def get_temp_dir(self) -> Path:
         """Get temporary directory."""
         import tempfile
         return Path(tempfile.gettempdir())
-    
+
     def normalize_path(self, path: str) -> Path:
         """Normalize path for current platform.
         
@@ -206,7 +207,7 @@ class PathManager:
             Normalized Path object
         """
         return Path(path).resolve()
-    
+
     def ensure_dir(self, path: Path, mode: int = 0o755) -> bool:
         """Ensure directory exists with proper permissions.
         
@@ -219,11 +220,11 @@ class PathManager:
         """
         try:
             path.mkdir(parents=True, exist_ok=True)
-            
+
             # Set permissions on Unix-like systems
             if not self.platform_info.is_windows:
                 path.chmod(mode)
-            
+
             return True
         except Exception as e:
             logger.error(f"Failed to create directory {path}: {e}")
@@ -232,19 +233,19 @@ class PathManager:
 
 class ProcessManager:
     """Cross-platform process management."""
-    
+
     def __init__(self):
         """Initialize process manager."""
         self.platform_info = PlatformInfo()
-    
+
     def run_command(
         self,
-        command: List[str],
-        cwd: Optional[str] = None,
-        env: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None,
+        command: list[str],
+        cwd: str | None = None,
+        env: dict[str, str] | None = None,
+        timeout: float | None = None,
         shell: bool = False
-    ) -> Tuple[int, str, str]:
+    ) -> tuple[int, str, str]:
         """Run command cross-platform.
         
         Args:
@@ -264,7 +265,7 @@ class ProcessManager:
                 builtin_commands = ['dir', 'copy', 'move', 'del', 'type', 'echo']
                 if command[0].lower() in builtin_commands:
                     shell = True
-            
+
             result = subprocess.run(
                 command,
                 cwd=cwd,
@@ -274,17 +275,17 @@ class ProcessManager:
                 capture_output=True,
                 text=True
             )
-            
+
             return result.returncode, result.stdout, result.stderr
-            
+
         except subprocess.TimeoutExpired:
             return -1, "", "Command timed out"
         except FileNotFoundError:
             return -1, "", f"Command not found: {command[0]}"
         except Exception as e:
             return -1, "", str(e)
-    
-    def find_executable(self, name: str) -> Optional[str]:
+
+    def find_executable(self, name: str) -> str | None:
         """Find executable in PATH.
         
         Args:
@@ -294,8 +295,8 @@ class ProcessManager:
             Full path to executable or None if not found
         """
         return shutil.which(name)
-    
-    def get_process_info(self) -> Dict[str, Any]:
+
+    def get_process_info(self) -> dict[str, Any]:
         """Get current process information."""
         return {
             "pid": os.getpid(),
@@ -308,13 +309,13 @@ class ProcessManager:
 
 class EnvironmentManager:
     """Cross-platform environment management."""
-    
+
     def __init__(self):
         """Initialize environment manager."""
         self.platform_info = PlatformInfo()
         self.path_manager = PathManager()
-    
-    def get_env_var(self, name: str, default: Optional[str] = None) -> Optional[str]:
+
+    def get_env_var(self, name: str, default: str | None = None) -> str | None:
         """Get environment variable value.
         
         Args:
@@ -325,7 +326,7 @@ class EnvironmentManager:
             Environment variable value or default
         """
         return os.environ.get(name, default)
-    
+
     def set_env_var(self, name: str, value: str) -> None:
         """Set environment variable.
         
@@ -334,16 +335,16 @@ class EnvironmentManager:
             value: Variable value
         """
         os.environ[name] = value
-    
+
     def get_path_separator(self) -> str:
         """Get path separator for current platform."""
         return os.pathsep
-    
-    def get_path_env(self) -> List[str]:
+
+    def get_path_env(self) -> list[str]:
         """Get PATH environment variable as list."""
         path_env = self.get_env_var("PATH", "")
         return path_env.split(self.get_path_separator()) if path_env else []
-    
+
     def add_to_path(self, path: str) -> None:
         """Add directory to PATH environment variable.
         
@@ -355,13 +356,13 @@ class EnvironmentManager:
             current_path.insert(0, path)
             new_path = self.get_path_separator().join(current_path)
             self.set_env_var("PATH", new_path)
-    
-    def get_python_path(self) -> List[str]:
+
+    def get_python_path(self) -> list[str]:
         """Get PYTHONPATH as list."""
         python_path = self.get_env_var("PYTHONPATH", "")
         return python_path.split(self.get_path_separator()) if python_path else []
-    
-    def setup_environment(self) -> Dict[str, Any]:
+
+    def setup_environment(self) -> dict[str, Any]:
         """Setup cross-platform environment for the application.
         
         Returns:
@@ -372,42 +373,42 @@ class EnvironmentManager:
             "paths": {},
             "environment": {}
         }
-        
+
         # Setup directories
         config_dir = self.path_manager.get_config_dir()
         data_dir = self.path_manager.get_data_dir()
         cache_dir = self.path_manager.get_cache_dir()
-        
+
         # Ensure directories exist
         for name, path in [("config", config_dir), ("data", data_dir), ("cache", cache_dir)]:
             if self.path_manager.ensure_dir(path):
                 setup_info["paths"][name] = str(path)
             else:
                 logger.warning(f"Failed to create {name} directory: {path}")
-        
+
         # Set up environment variables
         env_vars = {
             "RETRIEVAL_FREE_CONFIG_DIR": str(config_dir),
             "RETRIEVAL_FREE_DATA_DIR": str(data_dir),
             "RETRIEVAL_FREE_CACHE_DIR": str(cache_dir),
         }
-        
+
         for name, value in env_vars.items():
             self.set_env_var(name, value)
             setup_info["environment"][name] = value
-        
+
         return setup_info
 
 
 class DependencyManager:
     """Cross-platform dependency management."""
-    
+
     def __init__(self):
         """Initialize dependency manager."""
         self.platform_info = PlatformInfo()
         self.process_manager = ProcessManager()
-    
-    def check_python_version(self, min_version: Tuple[int, int] = (3, 10)) -> bool:
+
+    def check_python_version(self, min_version: tuple[int, int] = (3, 10)) -> bool:
         """Check if Python version meets requirements.
         
         Args:
@@ -418,8 +419,8 @@ class DependencyManager:
         """
         current = self.platform_info.python_version[:2]
         return current >= min_version
-    
-    def check_dependency(self, package_name: str) -> Dict[str, Any]:
+
+    def check_dependency(self, package_name: str) -> dict[str, Any]:
         """Check if a dependency is available.
         
         Args:
@@ -441,8 +442,8 @@ class DependencyManager:
                 "package": package_name,
                 "error": str(e)
             }
-    
-    def check_system_dependencies(self) -> Dict[str, Dict[str, Any]]:
+
+    def check_system_dependencies(self) -> dict[str, dict[str, Any]]:
         """Check system-level dependencies.
         
         Returns:
@@ -452,10 +453,10 @@ class DependencyManager:
             "git": self._check_git(),
             "curl": self._check_curl(),
         }
-        
+
         return dependencies
-    
-    def _check_git(self) -> Dict[str, Any]:
+
+    def _check_git(self) -> dict[str, Any]:
         """Check git availability."""
         git_path = self.process_manager.find_executable("git")
         if git_path:
@@ -473,8 +474,8 @@ class DependencyManager:
                 "version": None,
                 "error": "git not found in PATH"
             }
-    
-    def _check_curl(self) -> Dict[str, Any]:
+
+    def _check_curl(self) -> dict[str, Any]:
         """Check curl availability."""
         curl_path = self.process_manager.find_executable("curl")
         if curl_path:
@@ -492,8 +493,8 @@ class DependencyManager:
                 "version": None,
                 "error": "curl not found in PATH"
             }
-    
-    def get_system_report(self) -> Dict[str, Any]:
+
+    def get_system_report(self) -> dict[str, Any]:
         """Get comprehensive system report.
         
         Returns:
@@ -508,9 +509,9 @@ class DependencyManager:
 
 
 # Global instances
-_platform_info: Optional[PlatformInfo] = None
-_path_manager: Optional[PathManager] = None
-_environment_manager: Optional[EnvironmentManager] = None
+_platform_info: PlatformInfo | None = None
+_path_manager: PathManager | None = None
+_environment_manager: EnvironmentManager | None = None
 
 
 def get_platform_info() -> PlatformInfo:
@@ -537,7 +538,7 @@ def get_environment_manager() -> EnvironmentManager:
     return _environment_manager
 
 
-def setup_cross_platform_environment() -> Dict[str, Any]:
+def setup_cross_platform_environment() -> dict[str, Any]:
     """Setup cross-platform environment for the application.
     
     Returns:

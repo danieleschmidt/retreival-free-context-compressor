@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class StreamChunk:
     """Represents a chunk of streaming data."""
+
     data: str
     chunk_id: int
     timestamp: float
@@ -34,6 +35,7 @@ class StreamChunk:
 @dataclass
 class StreamState:
     """Maintains state for streaming compression."""
+
     active_mega_tokens: list[MegaToken]
     buffer: deque
     processed_chunks: int
@@ -42,11 +44,11 @@ class StreamState:
 
     def __post_init__(self):
         """Initialize default values."""
-        if not hasattr(self, 'compression_stats') or self.compression_stats is None:
+        if not hasattr(self, "compression_stats") or self.compression_stats is None:
             self.compression_stats = {
-                'total_compression_ratio': 1.0,
-                'avg_processing_time': 0.0,
-                'memory_usage_mb': 0.0
+                "total_compression_ratio": 1.0,
+                "avg_processing_time": 0.0,
+                "memory_usage_mb": 0.0,
             }
 
 
@@ -62,13 +64,13 @@ class StreamingCompressor(CompressorBase):
         buffer_size: int = 10000,
         overlap_ratio: float = 0.1,
         sliding_window_size: int = 5,
-        auto_flush_threshold: int = 50000
+        auto_flush_threshold: int = 50000,
     ):
         """Initialize streaming compressor.
-        
+
         Args:
             model_name: Name of compression model
-            device: Computing device  
+            device: Computing device
             max_length: Maximum total context length to maintain
             compression_ratio: Target compression ratio
             buffer_size: Size of streaming buffer in characters
@@ -89,7 +91,7 @@ class StreamingCompressor(CompressorBase):
             buffer=deque(),
             processed_chunks=0,
             total_characters=0,
-            compression_stats={}
+            compression_stats={},
         )
 
         # Thread safety
@@ -99,7 +101,9 @@ class StreamingCompressor(CompressorBase):
 
         # Optimization components
         self._memory_optimizer = MemoryOptimizer()
-        self._batch_processor = BatchProcessor(batch_size=4)  # Smaller batches for streaming
+        self._batch_processor = BatchProcessor(
+            batch_size=4
+        )  # Smaller batches for streaming
         self._validator = InputValidator(max_text_length=buffer_size * 2)
 
         # Background processing
@@ -120,7 +124,7 @@ class StreamingCompressor(CompressorBase):
             self._background_thread = threading.Thread(
                 target=self._background_processor,
                 name="StreamingCompressor-Background",
-                daemon=True
+                daemon=True,
             )
             self._background_thread.start()
 
@@ -146,28 +150,30 @@ class StreamingCompressor(CompressorBase):
 
     def feed_text(self, text: str, metadata: dict[str, Any] | None = None) -> None:
         """Feed text into the streaming buffer.
-        
+
         Args:
             text: Text to add to stream
             metadata: Optional metadata for this text chunk
         """
         if not self._is_streaming:
-            raise CompressionError("Streaming not active. Call start_streaming() first.")
+            raise CompressionError(
+                "Streaming not active. Call start_streaming() first."
+            )
 
         # Validate input
         validation_result = self._validator.validate_text_input(text)
         if not validation_result.is_valid:
             raise CompressionError(
                 f"Invalid streaming input: {validation_result.errors}",
-                details={'validation_errors': validation_result.errors}
+                details={"validation_errors": validation_result.errors},
             )
 
         # Create stream chunk
         chunk = StreamChunk(
-            data=validation_result.sanitized_input['text'],
+            data=validation_result.sanitized_input["text"],
             chunk_id=self.stream_state.processed_chunks,
             timestamp=time.time(),
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         # Add to processing queue
@@ -183,7 +189,7 @@ class StreamingCompressor(CompressorBase):
 
     def get_compressed_context(self) -> list[MegaToken]:
         """Get current compressed context.
-        
+
         Returns:
             List of active mega-tokens representing compressed context
         """
@@ -192,19 +198,19 @@ class StreamingCompressor(CompressorBase):
 
     def get_streaming_stats(self) -> dict[str, Any]:
         """Get streaming compression statistics.
-        
+
         Returns:
             Dictionary with streaming statistics
         """
         with self._lock:
             return {
-                'active_mega_tokens': len(self.stream_state.active_mega_tokens),
-                'buffer_size': len(self.stream_state.buffer),
-                'processed_chunks': self.stream_state.processed_chunks,
-                'total_characters': self.stream_state.total_characters,
-                'is_streaming': self._is_streaming,
-                'queue_size': self._processing_queue.qsize(),
-                **self.stream_state.compression_stats
+                "active_mega_tokens": len(self.stream_state.active_mega_tokens),
+                "buffer_size": len(self.stream_state.buffer),
+                "processed_chunks": self.stream_state.processed_chunks,
+                "total_characters": self.stream_state.total_characters,
+                "is_streaming": self._is_streaming,
+                "queue_size": self._processing_queue.qsize(),
+                **self.stream_state.compression_stats,
             }
 
     def _background_processor(self) -> None:
@@ -227,7 +233,7 @@ class StreamingCompressor(CompressorBase):
 
     def _process_streaming_chunk(self, chunk: StreamChunk) -> None:
         """Process a single streaming chunk.
-        
+
         Args:
             chunk: Stream chunk to process
         """
@@ -239,8 +245,10 @@ class StreamingCompressor(CompressorBase):
             # Check if we should compress
             buffer_text_size = sum(c.size for c in self.stream_state.buffer)
 
-            if (buffer_text_size >= self.auto_flush_threshold or
-                len(self.stream_state.buffer) >= self.buffer_size):
+            if (
+                buffer_text_size >= self.auto_flush_threshold
+                or len(self.stream_state.buffer) >= self.buffer_size
+            ):
 
                 self._flush_buffer()
 
@@ -257,7 +265,9 @@ class StreamingCompressor(CompressorBase):
         current_pos = 0
 
         for chunk in self.stream_state.buffer:
-            chunk_boundaries.append((current_pos, current_pos + chunk.size, chunk.chunk_id))
+            chunk_boundaries.append(
+                (current_pos, current_pos + chunk.size, chunk.chunk_id)
+            )
             combined_text += chunk.data
             current_pos += chunk.size
 
@@ -273,23 +283,24 @@ class StreamingCompressor(CompressorBase):
                     # Find which chunks this mega-token spans
                     start_pos, end_pos = mega_token.source_range
                     spanned_chunks = [
-                        chunk_id for chunk_start, chunk_end, chunk_id in chunk_boundaries
+                        chunk_id
+                        for chunk_start, chunk_end, chunk_id in chunk_boundaries
                         if not (chunk_end <= start_pos or chunk_start >= end_pos)
                     ]
 
                     # Create enhanced metadata
                     enhanced_metadata = {
                         **mega_token.metadata,
-                        'chunk_ids': spanned_chunks,
-                        'stream_timestamp': time.time(),
-                        'buffer_position': i
+                        "chunk_ids": spanned_chunks,
+                        "stream_timestamp": time.time(),
+                        "buffer_position": i,
                     }
 
                     streaming_token = MegaToken(
                         embedding=mega_token.embedding,
                         metadata=enhanced_metadata,
                         source_range=mega_token.source_range,
-                        compression_ratio=mega_token.compression_ratio
+                        compression_ratio=mega_token.compression_ratio,
                     )
 
                     streaming_tokens.append(streaming_token)
@@ -318,7 +329,7 @@ class StreamingCompressor(CompressorBase):
 
     def _update_sliding_window(self, new_tokens: list[MegaToken]) -> None:
         """Update the sliding window of active mega-tokens.
-        
+
         Args:
             new_tokens: New mega-tokens to add to the window
         """
@@ -328,15 +339,21 @@ class StreamingCompressor(CompressorBase):
         # Keep only the most recent tokens within sliding window
         if len(self.stream_state.active_mega_tokens) > self.sliding_window_size:
             # Remove oldest tokens
-            excess = len(self.stream_state.active_mega_tokens) - self.sliding_window_size
+            excess = (
+                len(self.stream_state.active_mega_tokens) - self.sliding_window_size
+            )
             removed_tokens = self.stream_state.active_mega_tokens[:excess]
-            self.stream_state.active_mega_tokens = self.stream_state.active_mega_tokens[excess:]
+            self.stream_state.active_mega_tokens = self.stream_state.active_mega_tokens[
+                excess:
+            ]
 
             logger.debug(f"Sliding window: removed {len(removed_tokens)} old tokens")
 
-    def _update_streaming_stats(self, result: CompressionResult, processing_time: float) -> None:
+    def _update_streaming_stats(
+        self, result: CompressionResult, processing_time: float
+    ) -> None:
         """Update streaming compression statistics.
-        
+
         Args:
             result: Compression result
             processing_time: Processing time for this flush
@@ -344,24 +361,24 @@ class StreamingCompressor(CompressorBase):
         current_stats = self.stream_state.compression_stats
 
         # Update running averages
-        if 'total_compression_ratio' not in current_stats:
-            current_stats['total_compression_ratio'] = result.compression_ratio
-            current_stats['avg_processing_time'] = processing_time
+        if "total_compression_ratio" not in current_stats:
+            current_stats["total_compression_ratio"] = result.compression_ratio
+            current_stats["avg_processing_time"] = processing_time
         else:
             # Exponential moving average
             alpha = 0.1
-            current_stats['total_compression_ratio'] = (
-                alpha * result.compression_ratio +
-                (1 - alpha) * current_stats['total_compression_ratio']
+            current_stats["total_compression_ratio"] = (
+                alpha * result.compression_ratio
+                + (1 - alpha) * current_stats["total_compression_ratio"]
             )
-            current_stats['avg_processing_time'] = (
-                alpha * processing_time +
-                (1 - alpha) * current_stats['avg_processing_time']
+            current_stats["avg_processing_time"] = (
+                alpha * processing_time
+                + (1 - alpha) * current_stats["avg_processing_time"]
             )
 
         # Memory usage
         memory_stats = self._memory_optimizer.get_memory_stats()
-        current_stats['memory_usage_mb'] = memory_stats['current_mb']
+        current_stats["memory_usage_mb"] = memory_stats["current_mb"]
 
     # Implement abstract methods from CompressorBase
     def load_model(self) -> None:
@@ -373,26 +390,25 @@ class StreamingCompressor(CompressorBase):
             # Apply streaming-specific optimizations
             if self._encoder_model is not None:
                 from .optimization import model_optimizer
-                self._encoder_model = model_optimizer.optimize_model_inference(self._encoder_model)
+
+                self._encoder_model = model_optimizer.optimize_model_inference(
+                    self._encoder_model
+                )
 
         except Exception as e:
             logger.error(f"Failed to load streaming model: {e}")
             raise CompressionError(f"Streaming model load failed: {e}")
 
-    def compress(
-        self,
-        text: str | list[str],
-        **kwargs
-    ) -> CompressionResult:
+    def compress(self, text: str | list[str], **kwargs) -> CompressionResult:
         """Compress text using streaming approach.
-        
+
         This method processes text in streaming fashion if streaming is active,
         otherwise falls back to batch compression.
-        
+
         Args:
             text: Input text to compress
             **kwargs: Additional parameters
-            
+
         Returns:
             CompressionResult
         """
@@ -411,29 +427,29 @@ class StreamingCompressor(CompressorBase):
                 mega_tokens=mega_tokens,
                 original_length=self.stream_state.total_characters,
                 compressed_length=len(mega_tokens),
-                compression_ratio=self.stream_state.compression_stats.get('total_compression_ratio', 1.0),
-                processing_time=self.stream_state.compression_stats.get('avg_processing_time', 0.0),
+                compression_ratio=self.stream_state.compression_stats.get(
+                    "total_compression_ratio", 1.0
+                ),
+                processing_time=self.stream_state.compression_stats.get(
+                    "avg_processing_time", 0.0
+                ),
                 metadata={
-                    'streaming_mode': True,
-                    'active_chunks': self.stream_state.processed_chunks,
-                    **self.get_streaming_stats()
-                }
+                    "streaming_mode": True,
+                    "active_chunks": self.stream_state.processed_chunks,
+                    **self.get_streaming_stats(),
+                },
             )
         else:
             # Use parent class implementation for non-streaming compression
             return super().compress(text, **kwargs)
 
-    def decompress(
-        self,
-        mega_tokens: list[MegaToken],
-        **kwargs
-    ) -> str:
+    def decompress(self, mega_tokens: list[MegaToken], **kwargs) -> str:
         """Decompress mega-tokens to text (approximate reconstruction).
-        
+
         Args:
             mega_tokens: Mega-tokens to decompress
             **kwargs: Additional parameters
-            
+
         Returns:
             Reconstructed text
         """
@@ -441,12 +457,12 @@ class StreamingCompressor(CompressorBase):
         parts = []
 
         for i, token in enumerate(mega_tokens):
-            if 'chunk_ids' in token.metadata:
+            if "chunk_ids" in token.metadata:
                 chunk_info = f"chunks {token.metadata['chunk_ids']}"
             else:
                 chunk_info = f"chunk range {token.source_range}"
 
-            timestamp = token.metadata.get('stream_timestamp', 0)
+            timestamp = token.metadata.get("stream_timestamp", 0)
 
             part = (
                 f"[StreamSegment {i+1}: {chunk_info}, "
@@ -471,7 +487,7 @@ class StreamingCompressor(CompressorBase):
                 buffer=deque(),
                 processed_chunks=0,
                 total_characters=0,
-                compression_stats={}
+                compression_stats={},
             )
 
             # Clear queue

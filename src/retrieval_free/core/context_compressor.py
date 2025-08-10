@@ -29,7 +29,7 @@ class HierarchicalEncoder(nn.Module):
         self,
         base_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
         hidden_dim: int = 768,
-        bottleneck_dim: int = 256
+        bottleneck_dim: int = 256,
     ):
         super().__init__()
         self.base_model_name = base_model_name
@@ -44,10 +44,10 @@ class HierarchicalEncoder(nn.Module):
 
     def forward(self, sentence_embeddings: torch.Tensor) -> torch.Tensor:
         """Encode sentence embeddings through hierarchical layers.
-        
+
         Args:
             sentence_embeddings: [batch_size, seq_len, embedding_dim]
-            
+
         Returns:
             Compressed representations [batch_size, bottleneck_dim]
         """
@@ -78,12 +78,12 @@ class ContextCompressor(CompressorBase):
         max_length: int = 256000,
         compression_ratio: float = 8.0,
         chunk_size: int = 512,
-        overlap: int = 64
+        overlap: int = 64,
     ):
         """Initialize context compressor.
-        
+
         Args:
-            model_name: Name of compression model  
+            model_name: Name of compression model
             device: Computing device
             max_length: Maximum input length
             compression_ratio: Target compression ratio
@@ -129,7 +129,7 @@ class ContextCompressor(CompressorBase):
             model_error = ModelLoadError(
                 error_msg,
                 model_name=self.model_name,
-                details={'device': self.device, 'original_error': str(e)}
+                details={"device": self.device, "original_error": str(e)},
             )
 
             # Fallback to dummy implementation for demo/testing
@@ -140,10 +140,10 @@ class ContextCompressor(CompressorBase):
 
     def _chunk_text(self, text: str) -> list[str]:
         """Split text into overlapping chunks.
-        
+
         Args:
             text: Input text to chunk
-            
+
         Returns:
             List of text chunks
         """
@@ -153,7 +153,7 @@ class ContextCompressor(CompressorBase):
             chunks = []
 
             for i in range(0, len(words), self.chunk_size - self.overlap):
-                chunk_words = words[i:i + self.chunk_size]
+                chunk_words = words[i : i + self.chunk_size]
                 chunks.append(" ".join(chunk_words))
 
             return chunks
@@ -163,7 +163,7 @@ class ContextCompressor(CompressorBase):
         chunks = []
 
         for i in range(0, len(tokens), self.chunk_size - self.overlap):
-            chunk_tokens = tokens[i:i + self.chunk_size]
+            chunk_tokens = tokens[i : i + self.chunk_size]
             chunk_text = self._tokenizer.decode(chunk_tokens, skip_special_tokens=True)
             chunks.append(chunk_text)
 
@@ -171,10 +171,10 @@ class ContextCompressor(CompressorBase):
 
     def _encode_chunks(self, chunks: list[str]) -> torch.Tensor:
         """Encode text chunks into embeddings.
-        
+
         Args:
             chunks: List of text chunks
-            
+
         Returns:
             Chunk embeddings tensor
         """
@@ -191,7 +191,7 @@ class ContextCompressor(CompressorBase):
                 return_tensors="pt",
                 padding=True,
                 truncation=True,
-                max_length=512
+                max_length=512,
             ).to(self.device)
 
             with torch.no_grad():
@@ -204,10 +204,10 @@ class ContextCompressor(CompressorBase):
 
     def _encode_chunks_optimized(self, chunks: list[str]) -> torch.Tensor:
         """Optimized version of chunk encoding with batching.
-        
+
         Args:
             chunks: List of text chunks
-            
+
         Returns:
             Chunk embeddings tensor
         """
@@ -218,6 +218,7 @@ class ContextCompressor(CompressorBase):
         # Initialize batch processor if needed
         if self._batch_processor is None:
             from ..optimization import BatchProcessor
+
             self._batch_processor = BatchProcessor(batch_size=8, device=self.device)
 
         # Process chunks in batches for better GPU utilization
@@ -230,7 +231,7 @@ class ContextCompressor(CompressorBase):
                     return_tensors="pt",
                     padding=True,
                     truncation=True,
-                    max_length=512
+                    max_length=512,
                 ).to(self.device)
 
                 with torch.no_grad():
@@ -239,7 +240,11 @@ class ContextCompressor(CompressorBase):
                     embedding = outputs.last_hidden_state.mean(dim=1)
                     embeddings.append(embedding)
 
-            return torch.cat(embeddings, dim=0) if embeddings else torch.empty(0, 384, device=self.device)
+            return (
+                torch.cat(embeddings, dim=0)
+                if embeddings
+                else torch.empty(0, 384, device=self.device)
+            )
 
         # Process all chunks in batches
         all_embeddings = []
@@ -247,7 +252,7 @@ class ContextCompressor(CompressorBase):
         # Split chunks into batches
         batch_size = self._batch_processor.batch_size
         for i in range(0, len(chunks), batch_size):
-            batch = chunks[i:i + batch_size]
+            batch = chunks[i : i + batch_size]
             batch_embeddings = encode_batch(batch)
             all_embeddings.append(batch_embeddings)
 
@@ -257,16 +262,14 @@ class ContextCompressor(CompressorBase):
             return torch.empty(0, 384, device=self.device)
 
     def _cluster_embeddings(
-        self,
-        embeddings: torch.Tensor,
-        n_clusters: int | None = None
+        self, embeddings: torch.Tensor, n_clusters: int | None = None
     ) -> tuple[torch.Tensor, np.ndarray]:
         """Cluster embeddings to create mega-tokens.
-        
+
         Args:
             embeddings: Chunk embeddings
             n_clusters: Number of clusters (auto-calculated if None)
-            
+
         Returns:
             Tuple of (cluster_centers, cluster_labels)
         """
@@ -290,24 +293,18 @@ class ContextCompressor(CompressorBase):
 
         # Convert cluster centers back to torch tensors
         cluster_centers = torch.tensor(
-            kmeans.cluster_centers_,
-            dtype=embeddings.dtype,
-            device=self.device
+            kmeans.cluster_centers_, dtype=embeddings.dtype, device=self.device
         )
 
         return cluster_centers, cluster_labels
 
-    def compress(
-        self,
-        text: str | list[str],
-        **kwargs
-    ) -> CompressionResult:
+    def compress(self, text: str | list[str], **kwargs) -> CompressionResult:
         """Compress text into mega-tokens.
-        
+
         Args:
             text: Input text or list of texts
             **kwargs: Additional parameters
-            
+
         Returns:
             CompressionResult with mega-tokens
         """
@@ -324,24 +321,25 @@ class ContextCompressor(CompressorBase):
             validation_result = validate_compression_request(
                 text=input_text,
                 parameters={
-                    'compression_ratio': self.compression_ratio,
-                    'max_length': self.max_length,
-                    'chunk_size': self.chunk_size
-                }
+                    "compression_ratio": self.compression_ratio,
+                    "max_length": self.max_length,
+                    "chunk_size": self.chunk_size,
+                },
             )
 
             if not validation_result.is_valid:
                 raise ValidationError(
                     "Input validation failed",
-                    validation_errors=validation_result.errors
+                    validation_errors=validation_result.errors,
                 )
 
             # Use sanitized input
-            input_text = validation_result.sanitized_input['text']
+            input_text = validation_result.sanitized_input["text"]
 
             # Initialize cache if not already done
             if self._cache is None:
                 from ..caching import TieredCache, create_cache_key
+
                 self._cache = TieredCache()
 
             # Check cache first
@@ -349,10 +347,10 @@ class ContextCompressor(CompressorBase):
                 input_text,
                 self.model_name,
                 {
-                    'compression_ratio': self.compression_ratio,
-                    'chunk_size': self.chunk_size,
-                    'overlap': self.overlap
-                }
+                    "compression_ratio": self.compression_ratio,
+                    "chunk_size": self.chunk_size,
+                    "overlap": self.overlap,
+                },
             )
 
             cached_result = self._cache.get(cache_key)
@@ -367,6 +365,7 @@ class ContextCompressor(CompressorBase):
             # Initialize optimization components if needed
             if self._memory_optimizer is None:
                 from ..optimization import MemoryOptimizer
+
                 self._memory_optimizer = MemoryOptimizer()
 
             # Count original tokens
@@ -386,12 +385,16 @@ class ContextCompressor(CompressorBase):
                     # Reshape for hierarchical encoder
                     chunk_embeddings = chunk_embeddings.unsqueeze(0)  # Add batch dim
                     compressed_embeddings = self._hierarchical_encoder(chunk_embeddings)
-                    compressed_embeddings = compressed_embeddings.squeeze(0)  # Remove batch dim
+                    compressed_embeddings = compressed_embeddings.squeeze(
+                        0
+                    )  # Remove batch dim
                 else:
                     compressed_embeddings = chunk_embeddings
 
                 # Cluster embeddings into mega-tokens
-                cluster_centers, cluster_labels = self._cluster_embeddings(compressed_embeddings)
+                cluster_centers, cluster_labels = self._cluster_embeddings(
+                    compressed_embeddings
+                )
 
                 # Create mega-tokens
                 mega_tokens = []
@@ -400,7 +403,9 @@ class ContextCompressor(CompressorBase):
                     center = self._memory_optimizer.optimize_tensor_memory(center)
 
                     # Find chunks assigned to this cluster
-                    cluster_chunks = [j for j, label in enumerate(cluster_labels) if label == i]
+                    cluster_chunks = [
+                        j for j, label in enumerate(cluster_labels) if label == i
+                    ]
 
                     # Calculate source range (approximate)
                     if cluster_chunks:
@@ -408,7 +413,7 @@ class ContextCompressor(CompressorBase):
                         end_chunk = max(cluster_chunks)
                         source_range = (
                             start_chunk * (self.chunk_size - self.overlap),
-                            (end_chunk + 1) * (self.chunk_size - self.overlap)
+                            (end_chunk + 1) * (self.chunk_size - self.overlap),
                         )
                     else:
                         source_range = (0, 0)
@@ -422,26 +427,30 @@ class ContextCompressor(CompressorBase):
                     mega_token = MegaToken(
                         embedding=center,
                         metadata={
-                            'cluster_id': i,
-                            'cluster_size': len(cluster_chunks),
-                            'source_chunks': cluster_chunks,
-                            'model': self.model_name
+                            "cluster_id": i,
+                            "cluster_size": len(cluster_chunks),
+                            "source_chunks": cluster_chunks,
+                            "model": self.model_name,
                         },
                         source_range=source_range,
-                        compression_ratio=len(cluster_chunks) if cluster_chunks else 1.0
+                        compression_ratio=(
+                            len(cluster_chunks) if cluster_chunks else 1.0
+                        ),
                     )
                     mega_tokens.append(mega_token)
 
             processing_time = time.time() - start_time
             compressed_length = len(mega_tokens)
-            actual_ratio = original_length / compressed_length if compressed_length > 0 else 1.0
+            actual_ratio = (
+                original_length / compressed_length if compressed_length > 0 else 1.0
+            )
 
             # Record metrics
             self._metrics_collector.record_compression(
                 input_tokens=original_length,
                 output_tokens=compressed_length,
                 processing_time_ms=processing_time * 1000,
-                model_name=self.model_name
+                model_name=self.model_name,
             )
 
             result = CompressionResult(
@@ -451,12 +460,16 @@ class ContextCompressor(CompressorBase):
                 compression_ratio=actual_ratio,
                 processing_time=processing_time,
                 metadata={
-                    'chunks_processed': len(chunks),
-                    'embedding_dim': chunk_embeddings.shape[-1] if len(chunk_embeddings.shape) > 1 else 0,
-                    'model': self.model_name,
-                    'device': str(self.device),
-                    'validation_warnings': validation_result.warnings
-                }
+                    "chunks_processed": len(chunks),
+                    "embedding_dim": (
+                        chunk_embeddings.shape[-1]
+                        if len(chunk_embeddings.shape) > 1
+                        else 0
+                    ),
+                    "model": self.model_name,
+                    "device": str(self.device),
+                    "validation_warnings": validation_result.warnings,
+                },
             )
 
             logger.info(
@@ -474,27 +487,25 @@ class ContextCompressor(CompressorBase):
             if not isinstance(e, (CompressionError, ValidationError)):
                 compression_error = CompressionError(
                     f"Compression failed: {str(e)}",
-                    input_length=len(input_text.split()) if 'input_text' in locals() else None,
+                    input_length=(
+                        len(input_text.split()) if "input_text" in locals() else None
+                    ),
                     model_name=self.model_name,
-                    details={'original_error': str(e)}
+                    details={"original_error": str(e)},
                 )
                 raise compression_error from e
             raise
 
-    def decompress(
-        self,
-        mega_tokens: list[MegaToken],
-        **kwargs
-    ) -> str:
+    def decompress(self, mega_tokens: list[MegaToken], **kwargs) -> str:
         """Approximate text reconstruction from mega-tokens.
-        
+
         Note: This is lossy reconstruction for demonstration purposes.
         Real implementation would use a decoder model.
-        
+
         Args:
             mega_tokens: List of mega-tokens to decompress
             **kwargs: Additional parameters
-            
+
         Returns:
             Reconstructed text (approximate)
         """
@@ -502,7 +513,7 @@ class ContextCompressor(CompressorBase):
         reconstructed_parts = []
 
         for i, token in enumerate(mega_tokens):
-            cluster_size = token.metadata.get('cluster_size', 1)
+            cluster_size = token.metadata.get("cluster_size", 1)
 
             # Generate placeholder text based on mega-token properties
             placeholder = (
@@ -515,16 +526,14 @@ class ContextCompressor(CompressorBase):
         return " ".join(reconstructed_parts)
 
     def get_attention_weights(
-        self,
-        query: str,
-        mega_tokens: list[MegaToken]
+        self, query: str, mega_tokens: list[MegaToken]
     ) -> torch.Tensor:
         """Calculate attention weights between query and mega-tokens.
-        
+
         Args:
             query: Query text
             mega_tokens: List of mega-tokens
-            
+
         Returns:
             Attention weights tensor
         """

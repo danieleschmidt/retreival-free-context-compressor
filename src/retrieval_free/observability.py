@@ -94,11 +94,13 @@ class StructuredLogger:
     def log_compression_start(self, input_size: int, model: str) -> None:
         """Log compression operation start."""
         self.logger.info(
-            json.dumps({
-                "event": "compression_start",
-                "input_size": input_size,
-                "model": model,
-            })
+            json.dumps(
+                {
+                    "event": "compression_start",
+                    "input_size": input_size,
+                    "model": model,
+                }
+            )
         )
 
     def log_compression_complete(
@@ -106,29 +108,35 @@ class StructuredLogger:
         input_size: int,
         output_size: int,
         compression_ratio: float,
-        duration: float
+        duration: float,
     ) -> None:
         """Log compression operation completion."""
         self.logger.info(
-            json.dumps({
-                "event": "compression_complete",
-                "input_size": input_size,
-                "output_size": output_size,
-                "compression_ratio": compression_ratio,
-                "duration_seconds": duration,
-                "throughput_tokens_per_second": input_size / duration if duration > 0 else 0,
-            })
+            json.dumps(
+                {
+                    "event": "compression_complete",
+                    "input_size": input_size,
+                    "output_size": output_size,
+                    "compression_ratio": compression_ratio,
+                    "duration_seconds": duration,
+                    "throughput_tokens_per_second": (
+                        input_size / duration if duration > 0 else 0
+                    ),
+                }
+            )
         )
 
     def log_error(self, error: Exception, context: dict[str, Any]) -> None:
         """Log error with context."""
         self.logger.error(
-            json.dumps({
-                "event": "error",
-                "error_type": type(error).__name__,
-                "error_message": str(error),
-                "context": context,
-            })
+            json.dumps(
+                {
+                    "event": "error",
+                    "error_type": type(error).__name__,
+                    "error_message": str(error),
+                    "context": context,
+                }
+            )
         )
 
 
@@ -182,6 +190,7 @@ health_checker = HealthChecker()
 
 def monitor_performance(func: Callable) -> Callable:
     """Decorator to monitor function performance."""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         func_name = f"{func.__module__}.{func.__name__}"
@@ -203,18 +212,21 @@ def monitor_performance(func: Callable) -> Callable:
                 # Record memory usage
                 end_memory = performance_monitor._get_memory_usage()
                 memory_delta = end_memory - start_memory
-                metrics_collector.set_gauge(f"{func_name}.memory_delta_mb", memory_delta)
+                metrics_collector.set_gauge(
+                    f"{func_name}.memory_delta_mb", memory_delta
+                )
 
     return wrapper
 
 
 def log_compression_operation(func: Callable) -> Callable:
     """Decorator to log compression operations."""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         # Extract input size from args (assumes first arg is text/document)
         input_size = len(str(args[0])) if args else 0
-        model = getattr(args[0] if args else None, 'model_name', 'unknown')
+        model = getattr(args[0] if args else None, "model_name", "unknown")
 
         logger.log_compression_start(input_size, model)
 
@@ -233,11 +245,14 @@ def log_compression_operation(func: Callable) -> Callable:
 
             return result
         except Exception as e:
-            logger.log_error(e, {
-                "function": func.__name__,
-                "input_size": input_size,
-                "model": model,
-            })
+            logger.log_error(
+                e,
+                {
+                    "function": func.__name__,
+                    "input_size": input_size,
+                    "model": model,
+                },
+            )
             raise
 
     return wrapper
@@ -252,7 +267,7 @@ def _check_memory_usage() -> bool:
 
 def _check_disk_space() -> bool:
     """Check if disk space is sufficient."""
-    disk_usage = psutil.disk_usage('/')
+    disk_usage = psutil.disk_usage("/")
     free_percentage = (disk_usage.free / disk_usage.total) * 100
     return free_percentage > 10  # More than 10% free
 

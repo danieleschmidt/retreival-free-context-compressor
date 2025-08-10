@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class Environment(Enum):
     """Environment types."""
+
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
@@ -31,20 +32,22 @@ class Environment(Enum):
 
 class FeatureToggleStrategy(Enum):
     """Feature toggle strategies."""
-    ON = "on"                      # Always on
-    OFF = "off"                    # Always off
-    PERCENTAGE = "percentage"      # Percentage of users
-    USER_LIST = "user_list"        # Specific users
-    A_B_TEST = "a_b_test"          # A/B testing
+
+    ON = "on"  # Always on
+    OFF = "off"  # Always off
+    PERCENTAGE = "percentage"  # Percentage of users
+    USER_LIST = "user_list"  # Specific users
+    A_B_TEST = "a_b_test"  # A/B testing
 
 
 @dataclass
 class FeatureToggle:
     """Feature toggle configuration."""
+
     name: str
     strategy: FeatureToggleStrategy
     enabled: bool = True
-    percentage: float = 100.0      # For percentage strategy
+    percentage: float = 100.0  # For percentage strategy
     user_list: set[str] = field(default_factory=set)  # For user_list strategy
     metadata: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
@@ -54,10 +57,11 @@ class FeatureToggle:
 @dataclass
 class ABTestConfig:
     """A/B test configuration."""
+
     name: str
     control_percentage: float = 50.0  # Percentage for control group
     treatment_percentage: float = 50.0  # Percentage for treatment group
-    user_hash_salt: str = ""          # Salt for consistent user hashing
+    user_hash_salt: str = ""  # Salt for consistent user hashing
     start_date: datetime | None = None
     end_date: datetime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -66,11 +70,12 @@ class ABTestConfig:
 @dataclass
 class ConfigSchema:
     """Schema definition for configuration validation."""
+
     required_fields: set[str] = field(default_factory=set)
     optional_fields: set[str] = field(default_factory=set)
     field_types: dict[str, type] = field(default_factory=dict)
     field_validators: dict[str, Callable[[Any], bool]] = field(default_factory=dict)
-    nested_schemas: dict[str, 'ConfigSchema'] = field(default_factory=dict)
+    nested_schemas: dict[str, "ConfigSchema"] = field(default_factory=dict)
 
 
 class ConfigValidator:
@@ -82,7 +87,7 @@ class ConfigValidator:
 
     def register_schema(self, name: str, schema: ConfigSchema) -> None:
         """Register a configuration schema.
-        
+
         Args:
             name: Schema name
             schema: Schema definition
@@ -92,11 +97,11 @@ class ConfigValidator:
 
     def validate(self, config: dict[str, Any], schema_name: str) -> list[str]:
         """Validate configuration against a schema.
-        
+
         Args:
             config: Configuration to validate
             schema_name: Name of schema to use
-            
+
         Returns:
             List of validation errors (empty if valid)
         """
@@ -116,7 +121,9 @@ class ConfigValidator:
             if field in schema.field_types:
                 expected_type = schema.field_types[field]
                 if not isinstance(value, expected_type):
-                    errors.append(f"Field '{field}' should be of type {expected_type.__name__}, got {type(value).__name__}")
+                    errors.append(
+                        f"Field '{field}' should be of type {expected_type.__name__}, got {type(value).__name__}"
+                    )
 
             if field in schema.field_validators:
                 validator = schema.field_validators[field]
@@ -147,7 +154,7 @@ class ConfigurationManager:
 
     def __init__(self, config_dir: str | Path | None = None):
         """Initialize configuration manager.
-        
+
         Args:
             config_dir: Directory containing configuration files
         """
@@ -165,56 +172,67 @@ class ConfigurationManager:
         # Load initial configuration
         self.reload_configuration()
 
-        logger.info(f"Configuration manager initialized with directory: {self.config_dir}")
+        logger.info(
+            f"Configuration manager initialized with directory: {self.config_dir}"
+        )
 
     def _setup_default_schemas(self) -> None:
         """Set up default configuration schemas."""
         # Compression schema
         compression_schema = ConfigSchema(
             required_fields={"model_name", "chunk_size"},
-            optional_fields={"compression_ratio", "overlap_ratio", "device", "batch_size"},
+            optional_fields={
+                "compression_ratio",
+                "overlap_ratio",
+                "device",
+                "batch_size",
+            },
             field_types={
                 "model_name": str,
                 "chunk_size": int,
                 "compression_ratio": (int, float),
                 "overlap_ratio": (int, float),
                 "device": str,
-                "batch_size": int
+                "batch_size": int,
             },
             field_validators={
                 "chunk_size": lambda x: x > 0 and x <= 8192,
                 "compression_ratio": lambda x: x > 0 and x <= 100,
                 "overlap_ratio": lambda x: 0 <= x <= 0.5,
-                "batch_size": lambda x: x > 0 and x <= 128
-            }
+                "batch_size": lambda x: x > 0 and x <= 128,
+            },
         )
         self.validator.register_schema("compression", compression_schema)
 
         # Security schema
         security_schema = ConfigSchema(
             required_fields={"enable_authentication"},
-            optional_fields={"rate_limit_requests", "rate_limit_window", "max_input_size"},
+            optional_fields={
+                "rate_limit_requests",
+                "rate_limit_window",
+                "max_input_size",
+            },
             field_types={
                 "enable_authentication": bool,
                 "rate_limit_requests": int,
                 "rate_limit_window": int,
-                "max_input_size": int
+                "max_input_size": int,
             },
             field_validators={
                 "rate_limit_requests": lambda x: x > 0 and x <= 10000,
                 "rate_limit_window": lambda x: x > 0 and x <= 3600,
-                "max_input_size": lambda x: x > 0 and x <= 100_000_000
-            }
+                "max_input_size": lambda x: x > 0 and x <= 100_000_000,
+            },
         )
         self.validator.register_schema("security", security_schema)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value.
-        
+
         Args:
             key: Configuration key (supports dot notation)
             default: Default value if key not found
-            
+
         Returns:
             Configuration value or default
         """
@@ -223,12 +241,12 @@ class ConfigurationManager:
 
     def set(self, key: str, value: Any, validate: bool = True) -> None:
         """Set configuration value.
-        
+
         Args:
             key: Configuration key (supports dot notation)
             value: Value to set
             validate: Whether to validate the configuration
-            
+
         Raises:
             ConfigurationError: If validation fails
         """
@@ -247,7 +265,7 @@ class ConfigurationManager:
                     raise ConfigurationError(
                         f"Configuration validation failed: {'; '.join(errors)}",
                         config_key=key,
-                        config_value=value
+                        config_value=value,
                     )
 
             # Notify callbacks
@@ -261,11 +279,11 @@ class ConfigurationManager:
 
     def update(self, updates: dict[str, Any], validate: bool = True) -> None:
         """Update multiple configuration values.
-        
+
         Args:
             updates: Dictionary of key-value pairs to update
             validate: Whether to validate the configuration
-            
+
         Raises:
             ConfigurationError: If validation fails
         """
@@ -310,7 +328,7 @@ class ConfigurationManager:
 
     def watch_for_changes(self) -> bool:
         """Check for configuration file changes and reload if needed.
-        
+
         Returns:
             True if configuration was reloaded, False otherwise
         """
@@ -319,8 +337,10 @@ class ConfigurationManager:
 
             for config_file in self.config_dir.glob("*.{json,yaml,yml}"):
                 current_mtime = config_file.stat().st_mtime
-                if (str(config_file) not in self._file_mtimes or
-                    current_mtime > self._file_mtimes[str(config_file)]):
+                if (
+                    str(config_file) not in self._file_mtimes
+                    or current_mtime > self._file_mtimes[str(config_file)]
+                ):
                     needs_reload = True
                     break
 
@@ -330,9 +350,11 @@ class ConfigurationManager:
 
             return False
 
-    def register_change_callback(self, callback: Callable[[str, Any, Any], None]) -> None:
+    def register_change_callback(
+        self, callback: Callable[[str, Any, Any], None]
+    ) -> None:
         """Register a callback for configuration changes.
-        
+
         Args:
             callback: Function called with (key, old_value, new_value)
         """
@@ -341,10 +363,10 @@ class ConfigurationManager:
 
     def export_configuration(self, format: str = "json") -> str:
         """Export current configuration.
-        
+
         Args:
             format: Export format ("json" or "yaml")
-            
+
         Returns:
             Serialized configuration
         """
@@ -356,14 +378,16 @@ class ConfigurationManager:
             else:
                 raise ValueError(f"Unsupported format: {format}")
 
-    def import_configuration(self, config_str: str, format: str = "json", validate: bool = True) -> None:
+    def import_configuration(
+        self, config_str: str, format: str = "json", validate: bool = True
+    ) -> None:
         """Import configuration from string.
-        
+
         Args:
             config_str: Serialized configuration
             format: Configuration format ("json" or "yaml")
             validate: Whether to validate the configuration
-            
+
         Raises:
             ConfigurationError: If parsing or validation fails
         """
@@ -408,9 +432,9 @@ class ConfigurationManager:
                 self._file_mtimes[str(config_file)] = config_file.stat().st_mtime
 
                 with open(config_file) as f:
-                    if config_file.suffix.lower() == '.json':
+                    if config_file.suffix.lower() == ".json":
                         file_config = json.load(f)
-                    elif config_file.suffix.lower() in ['.yaml', '.yml']:
+                    elif config_file.suffix.lower() in [".yaml", ".yml"]:
                         file_config = yaml.safe_load(f)
                     else:
                         continue
@@ -423,7 +447,7 @@ class ConfigurationManager:
                 logger.error(f"Failed to load configuration from {config_file}: {e}")
 
         # Apply environment-specific overrides
-        env = os.environ.get('RETRIEVAL_FREE_ENV', Environment.DEVELOPMENT.value)
+        env = os.environ.get("RETRIEVAL_FREE_ENV", Environment.DEVELOPMENT.value)
         env_config_file = self.config_dir / f"{env}.json"
         if env_config_file.exists():
             try:
@@ -445,7 +469,7 @@ class ConfigurationManager:
 
         for key, value in os.environ.items():
             if key.startswith(env_prefix):
-                config_key = key[len(env_prefix):].lower().replace('_', '.')
+                config_key = key[len(env_prefix) :].lower().replace("_", ".")
 
                 # Try to parse as JSON, otherwise use as string
                 try:
@@ -454,11 +478,15 @@ class ConfigurationManager:
                     parsed_value = value
 
                 self._set_nested_value(config, config_key, parsed_value)
-                logger.debug(f"Applied environment override: {config_key} = {parsed_value}")
+                logger.debug(
+                    f"Applied environment override: {config_key} = {parsed_value}"
+                )
 
-    def _get_nested_value(self, obj: dict[str, Any], key: str, default: Any = None) -> Any:
+    def _get_nested_value(
+        self, obj: dict[str, Any], key: str, default: Any = None
+    ) -> Any:
         """Get value from nested dictionary using dot notation."""
-        keys = key.split('.')
+        keys = key.split(".")
         current = obj
 
         for k in keys:
@@ -471,7 +499,7 @@ class ConfigurationManager:
 
     def _set_nested_value(self, obj: dict[str, Any], key: str, value: Any) -> None:
         """Set value in nested dictionary using dot notation."""
-        keys = key.split('.')
+        keys = key.split(".")
         current = obj
 
         for k in keys[:-1]:
@@ -484,7 +512,11 @@ class ConfigurationManager:
     def _deep_merge(self, target: dict[str, Any], source: dict[str, Any]) -> None:
         """Deep merge source dictionary into target."""
         for key, value in source.items():
-            if key in target and isinstance(target[key], dict) and isinstance(value, dict):
+            if (
+                key in target
+                and isinstance(target[key], dict)
+                and isinstance(value, dict)
+            ):
                 self._deep_merge(target[key], value)
             else:
                 target[key] = value
@@ -507,7 +539,7 @@ class FeatureToggleManager:
 
     def __init__(self, config_manager: ConfigurationManager | None = None):
         """Initialize feature toggle manager.
-        
+
         Args:
             config_manager: Configuration manager instance
         """
@@ -525,33 +557,34 @@ class FeatureToggleManager:
         self,
         name: str,
         strategy: FeatureToggleStrategy = FeatureToggleStrategy.ON,
-        **kwargs
+        **kwargs,
     ) -> None:
         """Register a feature toggle.
-        
+
         Args:
             name: Toggle name
             strategy: Toggle strategy
             **kwargs: Additional toggle parameters
         """
         with self._lock:
-            toggle = FeatureToggle(
-                name=name,
-                strategy=strategy,
-                **kwargs
-            )
+            toggle = FeatureToggle(name=name, strategy=strategy, **kwargs)
             self._toggles[name] = toggle
 
             logger.info(f"Registered feature toggle: {name} ({strategy.value})")
 
-    def is_enabled(self, toggle_name: str, user_id: str | None = None, context: dict[str, Any] | None = None) -> bool:
+    def is_enabled(
+        self,
+        toggle_name: str,
+        user_id: str | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> bool:
         """Check if a feature toggle is enabled.
-        
+
         Args:
             toggle_name: Name of the toggle
             user_id: User identifier for personalized toggles
             context: Additional context for toggle evaluation
-            
+
         Returns:
             True if feature is enabled, False otherwise
         """
@@ -589,10 +622,10 @@ class FeatureToggleManager:
         name: str,
         control_percentage: float = 50.0,
         treatment_percentage: float = 50.0,
-        **kwargs
+        **kwargs,
     ) -> None:
         """Register an A/B test.
-        
+
         Args:
             name: Test name
             control_percentage: Percentage for control group
@@ -604,19 +637,21 @@ class FeatureToggleManager:
                 name=name,
                 control_percentage=control_percentage,
                 treatment_percentage=treatment_percentage,
-                **kwargs
+                **kwargs,
             )
             self._ab_tests[name] = ab_test
 
-            logger.info(f"Registered A/B test: {name} ({control_percentage}/{treatment_percentage})")
+            logger.info(
+                f"Registered A/B test: {name} ({control_percentage}/{treatment_percentage})"
+            )
 
     def get_ab_test_variant(self, test_name: str, user_id: str) -> str | None:
         """Get A/B test variant for a user.
-        
+
         Args:
             test_name: Test name
             user_id: User identifier
-            
+
         Returns:
             "control", "treatment", or None if not in test
         """
@@ -645,7 +680,7 @@ class FeatureToggleManager:
 
     def update_toggle(self, name: str, **updates) -> None:
         """Update a feature toggle.
-        
+
         Args:
             name: Toggle name
             **updates: Fields to update
@@ -665,10 +700,10 @@ class FeatureToggleManager:
 
     def get_toggle_status(self, name: str) -> dict[str, Any] | None:
         """Get status of a feature toggle.
-        
+
         Args:
             name: Toggle name
-            
+
         Returns:
             Toggle status dictionary or None if not found
         """
@@ -681,7 +716,7 @@ class FeatureToggleManager:
 
     def list_toggles(self) -> dict[str, dict[str, Any]]:
         """List all feature toggles.
-        
+
         Returns:
             Dictionary of toggle names to their status
         """
@@ -690,7 +725,7 @@ class FeatureToggleManager:
 
     def list_ab_tests(self) -> dict[str, dict[str, Any]]:
         """List all A/B tests.
-        
+
         Returns:
             Dictionary of test names to their configuration
         """
@@ -712,11 +747,11 @@ class FeatureToggleManager:
 
     def _hash_user(self, user_id: str, salt: str = "") -> float:
         """Hash user ID to a percentage (0-100).
-        
+
         Args:
             user_id: User identifier
             salt: Salt for hashing
-            
+
         Returns:
             Percentage between 0 and 100
         """
@@ -725,14 +760,16 @@ class FeatureToggleManager:
         # Convert first 8 hex chars to int, then to percentage
         return (int(hash_value[:8], 16) % 10000) / 100.0
 
-    def _evaluate_ab_test(self, toggle_name: str, user_id: str | None, context: dict[str, Any] | None) -> bool:
+    def _evaluate_ab_test(
+        self, toggle_name: str, user_id: str | None, context: dict[str, Any] | None
+    ) -> bool:
         """Evaluate A/B test for feature toggle.
-        
+
         Args:
             toggle_name: Toggle name
             user_id: User identifier
             context: Additional context
-            
+
         Returns:
             True if user is in treatment group
         """
@@ -750,10 +787,10 @@ _feature_toggle_manager: FeatureToggleManager | None = None
 
 def get_config_manager(config_dir: str | Path | None = None) -> ConfigurationManager:
     """Get global configuration manager.
-    
+
     Args:
         config_dir: Configuration directory
-        
+
     Returns:
         ConfigurationManager instance
     """
@@ -765,7 +802,7 @@ def get_config_manager(config_dir: str | Path | None = None) -> ConfigurationMan
 
 def get_feature_toggle_manager() -> FeatureToggleManager:
     """Get global feature toggle manager.
-    
+
     Returns:
         FeatureToggleManager instance
     """
@@ -777,36 +814,43 @@ def get_feature_toggle_manager() -> FeatureToggleManager:
 
 def feature_flag(flag_name: str, default: bool = False):
     """Decorator to conditionally execute function based on feature flag.
-    
+
     Args:
         flag_name: Name of the feature flag
         default: Default value if flag not found
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             toggle_manager = get_feature_toggle_manager()
 
             # Try to get user_id from kwargs
-            user_id = kwargs.get('user_id') or kwargs.get('_api_key_info', {}).get('key_id')
+            user_id = kwargs.get("user_id") or kwargs.get("_api_key_info", {}).get(
+                "key_id"
+            )
 
             if toggle_manager.is_enabled(flag_name, user_id=user_id):
                 return func(*args, **kwargs)
             else:
-                logger.debug(f"Feature flag '{flag_name}' is disabled, skipping function")
+                logger.debug(
+                    f"Feature flag '{flag_name}' is disabled, skipping function"
+                )
                 return None
 
         return wrapper
+
     return decorator
 
 
 def config_value(key: str, default: Any = None):
     """Decorator to inject configuration value into function.
-    
+
     Args:
         key: Configuration key
         default: Default value if key not found
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -816,4 +860,5 @@ def config_value(key: str, default: Any = None):
             return func(*args, **kwargs)
 
         return wrapper
+
     return decorator

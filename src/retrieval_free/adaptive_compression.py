@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 class ContentType(str, Enum):
     """Types of content for specialized processing."""
+
     CODE = "code"
     DOCUMENTATION = "documentation"
     CONVERSATION = "conversation"
@@ -43,6 +44,7 @@ class ContentType(str, Enum):
 
 class CompressionStrategy(str, Enum):
     """Available compression strategies."""
+
     HIERARCHICAL = "hierarchical"
     SEMANTIC_CLUSTERING = "semantic_clustering"
     FREQUENCY_BASED = "frequency_based"
@@ -54,6 +56,7 @@ class CompressionStrategy(str, Enum):
 @dataclass
 class ContentCharacteristics:
     """Characteristics of content for adaptive compression."""
+
     content_type: ContentType
     length: int
     complexity_score: float
@@ -68,6 +71,7 @@ class ContentCharacteristics:
 @dataclass
 class CompressionParameters:
     """Parameters for compression algorithms."""
+
     strategy: CompressionStrategy
     compression_ratio: float
     chunk_size: int
@@ -82,6 +86,7 @@ class CompressionParameters:
 @dataclass
 class StreamingState:
     """State for streaming compression."""
+
     buffer: deque
     window_tokens: list[MegaToken]
     processed_count: int
@@ -96,24 +101,24 @@ class ContentAnalyzer:
     def __init__(self):
         # Patterns for content type detection
         self.code_patterns = [
-            r'\b(def|class|import|function|var|let|const)\b',
-            r'[{}\[\]();]',
-            r'\/\/|\/\*|\*\/|#.*$',
-            r'\b(if|else|while|for|return)\b'
+            r"\b(def|class|import|function|var|let|const)\b",
+            r"[{}\[\]();]",
+            r"\/\/|\/\*|\*\/|#.*$",
+            r"\b(if|else|while|for|return)\b",
         ]
 
         self.doc_patterns = [
-            r'# .+|## .+|### .+',  # Markdown headers
-            r'\*\*.+\*\*|__.+__',  # Bold text
-            r'`[^`]+`',  # Code blocks
-            r'http[s]?://\S+'  # URLs
+            r"# .+|## .+|### .+",  # Markdown headers
+            r"\*\*.+\*\*|__.+__",  # Bold text
+            r"`[^`]+`",  # Code blocks
+            r"http[s]?://\S+",  # URLs
         ]
 
         self.scientific_patterns = [
-            r'\b(abstract|introduction|methodology|results|conclusion)\b',
-            r'\b(et al\.|i\.e\.|e\.g\.)\b',
-            r'\b\d+\.\d+\b',  # Decimal numbers
-            r'\([^)]*\d{4}[^)]*\)'  # Citations with years
+            r"\b(abstract|introduction|methodology|results|conclusion)\b",
+            r"\b(et al\.|i\.e\.|e\.g\.)\b",
+            r"\b\d+\.\d+\b",  # Decimal numbers
+            r"\([^)]*\d{4}[^)]*\)",  # Citations with years
         ]
 
     def analyze_content(self, text: str) -> ContentCharacteristics:
@@ -121,8 +126,8 @@ class ContentAnalyzer:
         # Basic statistics
         length = len(text)
         words = text.split()
-        sentences = re.split(r'[.!?]+', text)
-        vocabulary = set(word.lower().strip('.,!?;:') for word in words)
+        sentences = re.split(r"[.!?]+", text)
+        vocabulary = set(word.lower().strip(".,!?;:") for word in words)
 
         # Calculate metrics
         vocabulary_size = len(vocabulary)
@@ -151,10 +156,10 @@ class ContentAnalyzer:
             avg_sentence_length=avg_sentence_length,
             technical_terms_ratio=technical_terms_ratio,
             metadata={
-                'word_count': len(words),
-                'sentence_count': len(sentences),
-                'unique_words': vocabulary_size
-            }
+                "word_count": len(words),
+                "sentence_count": len(sentences),
+                "unique_words": vocabulary_size,
+            },
         )
 
     def _detect_content_type(self, text: str) -> ContentType:
@@ -162,14 +167,20 @@ class ContentAnalyzer:
         text_lower = text.lower()
 
         # Count pattern matches
-        code_score = sum(len(re.findall(pattern, text, re.MULTILINE | re.IGNORECASE))
-                        for pattern in self.code_patterns)
+        code_score = sum(
+            len(re.findall(pattern, text, re.MULTILINE | re.IGNORECASE))
+            for pattern in self.code_patterns
+        )
 
-        doc_score = sum(len(re.findall(pattern, text, re.MULTILINE | re.IGNORECASE))
-                       for pattern in self.doc_patterns)
+        doc_score = sum(
+            len(re.findall(pattern, text, re.MULTILINE | re.IGNORECASE))
+            for pattern in self.doc_patterns
+        )
 
-        sci_score = sum(len(re.findall(pattern, text, re.MULTILINE | re.IGNORECASE))
-                       for pattern in self.scientific_patterns)
+        sci_score = sum(
+            len(re.findall(pattern, text, re.MULTILINE | re.IGNORECASE))
+            for pattern in self.scientific_patterns
+        )
 
         # Normalize scores by text length
         text_length = len(text.split())
@@ -184,14 +195,16 @@ class ContentAnalyzer:
             return ContentType.DOCUMENTATION
         elif sci_score > 0.01:
             return ContentType.SCIENTIFIC_PAPER
-        elif 'legal' in text_lower or 'pursuant' in text_lower:
+        elif "legal" in text_lower or "pursuant" in text_lower:
             return ContentType.LEGAL_DOCUMENT
-        elif len(re.findall(r'\n\w+:', text)) > 3:  # Conversation format
+        elif len(re.findall(r"\n\w+:", text)) > 3:  # Conversation format
             return ContentType.CONVERSATION
         else:
             return ContentType.GENERAL_TEXT
 
-    def _calculate_complexity(self, text: str, words: list[str], vocab_size: int) -> float:
+    def _calculate_complexity(
+        self, text: str, words: list[str], vocab_size: int
+    ) -> float:
         """Calculate text complexity score (0-1)."""
         # Lexical diversity
         lexical_diversity = vocab_size / max(len(words), 1)
@@ -201,33 +214,35 @@ class ContentAnalyzer:
         word_length_score = min(avg_word_length / 10, 1.0)
 
         # Sentence structure complexity
-        sentences = re.split(r'[.!?]+', text)
+        sentences = re.split(r"[.!?]+", text)
         avg_sentence_words = len(words) / max(len(sentences), 1)
         sentence_complexity = min(avg_sentence_words / 20, 1.0)
 
         # Combined complexity score
-        complexity = (lexical_diversity * 0.4 +
-                     word_length_score * 0.3 +
-                     sentence_complexity * 0.3)
+        complexity = (
+            lexical_diversity * 0.4
+            + word_length_score * 0.3
+            + sentence_complexity * 0.3
+        )
 
         return min(complexity, 1.0)
 
     def _calculate_structure_score(self, text: str) -> float:
         """Calculate structural organization score (0-1)."""
         # Headers and sections
-        headers = len(re.findall(r'^#+\s+.+$|^[A-Z][^.]*:$', text, re.MULTILINE))
+        headers = len(re.findall(r"^#+\s+.+$|^[A-Z][^.]*:$", text, re.MULTILINE))
 
         # Lists and bullet points
-        lists = len(re.findall(r'^\s*[-*+]\s+|^\s*\d+\.\s+', text, re.MULTILINE))
+        lists = len(re.findall(r"^\s*[-*+]\s+|^\s*\d+\.\s+", text, re.MULTILINE))
 
         # Paragraphs
-        paragraphs = len(re.split(r'\n\s*\n', text.strip()))
+        paragraphs = len(re.split(r"\n\s*\n", text.strip()))
 
         # Code blocks
-        code_blocks = len(re.findall(r'```[\s\S]*?```|`[^`]+`', text))
+        code_blocks = len(re.findall(r"```[\s\S]*?```|`[^`]+`", text))
 
         # Normalize by text length
-        text_lines = len(text.split('\n'))
+        text_lines = len(text.split("\n"))
         structure_elements = headers + lists + code_blocks
 
         structure_score = min(structure_elements / max(text_lines / 10, 1), 1.0)
@@ -237,11 +252,11 @@ class ContentAnalyzer:
         """Calculate ratio of technical terms."""
         # Simple heuristic: words with unusual patterns
         technical_patterns = [
-            r'^[a-z]+[A-Z][a-z]+',  # camelCase
-            r'^[A-Z_]+$',  # CONSTANTS
-            r'^\w+\.\w+',  # dot notation
-            r'^\w+_\w+',  # snake_case
-            r'^\w{10,}$',  # Very long words
+            r"^[a-z]+[A-Z][a-z]+",  # camelCase
+            r"^[A-Z_]+$",  # CONSTANTS
+            r"^\w+\.\w+",  # dot notation
+            r"^\w+_\w+",  # snake_case
+            r"^\w{10,}$",  # Very long words
         ]
 
         technical_count = 0
@@ -264,40 +279,39 @@ class StrategySelector:
                 CompressionStrategy.TEMPLATE_MATCHING: 0.9,
                 CompressionStrategy.FREQUENCY_BASED: 0.8,
                 CompressionStrategy.HIERARCHICAL: 0.6,
-                CompressionStrategy.SEMANTIC_CLUSTERING: 0.4
+                CompressionStrategy.SEMANTIC_CLUSTERING: 0.4,
             },
             ContentType.DOCUMENTATION: {
                 CompressionStrategy.HIERARCHICAL: 0.9,
                 CompressionStrategy.SEMANTIC_CLUSTERING: 0.8,
                 CompressionStrategy.TEMPLATE_MATCHING: 0.7,
-                CompressionStrategy.FREQUENCY_BASED: 0.5
+                CompressionStrategy.FREQUENCY_BASED: 0.5,
             },
             ContentType.SCIENTIFIC_PAPER: {
                 CompressionStrategy.SEMANTIC_CLUSTERING: 0.9,
                 CompressionStrategy.HIERARCHICAL: 0.8,
                 CompressionStrategy.FREQUENCY_BASED: 0.6,
-                CompressionStrategy.TEMPLATE_MATCHING: 0.4
+                CompressionStrategy.TEMPLATE_MATCHING: 0.4,
             },
             ContentType.GENERAL_TEXT: {
                 CompressionStrategy.HIERARCHICAL: 0.8,
                 CompressionStrategy.SEMANTIC_CLUSTERING: 0.7,
                 CompressionStrategy.FREQUENCY_BASED: 0.6,
-                CompressionStrategy.TEMPLATE_MATCHING: 0.5
-            }
+                CompressionStrategy.TEMPLATE_MATCHING: 0.5,
+            },
         }
 
     def select_strategy(
         self,
         characteristics: ContentCharacteristics,
         target_ratio: float = 8.0,
-        prefer_speed: bool = False
+        prefer_speed: bool = False,
     ) -> CompressionParameters:
         """Select optimal compression strategy."""
 
         # Get effectiveness scores for content type
         content_strategies = self.strategy_matrix.get(
-            characteristics.content_type,
-            self.strategy_matrix[ContentType.GENERAL_TEXT]
+            characteristics.content_type, self.strategy_matrix[ContentType.GENERAL_TEXT]
         )
 
         # Adjust scores based on characteristics
@@ -328,7 +342,7 @@ class StrategySelector:
                     CompressionStrategy.FREQUENCY_BASED: 1.3,
                     CompressionStrategy.TEMPLATE_MATCHING: 1.2,
                     CompressionStrategy.HIERARCHICAL: 1.0,
-                    CompressionStrategy.SEMANTIC_CLUSTERING: 0.8
+                    CompressionStrategy.SEMANTIC_CLUSTERING: 0.8,
                 }
                 score *= speed_multipliers.get(strategy, 1.0)
 
@@ -344,7 +358,7 @@ class StrategySelector:
         self,
         strategy: CompressionStrategy,
         characteristics: ContentCharacteristics,
-        target_ratio: float
+        target_ratio: float,
     ) -> CompressionParameters:
         """Generate parameters for selected strategy."""
 
@@ -367,7 +381,9 @@ class StrategySelector:
             chunk_size = 256
 
         elif strategy == CompressionStrategy.TEMPLATE_MATCHING:
-            template_threshold = 0.9 if characteristics.content_type == ContentType.CODE else 0.8
+            template_threshold = (
+                0.9 if characteristics.content_type == ContentType.CODE else 0.8
+            )
             chunk_size = 128  # Small chunks for template detection
 
         # Content type adjustments
@@ -381,9 +397,9 @@ class StrategySelector:
             compression_ratio=target_ratio,
             chunk_size=chunk_size,
             overlap_ratio=overlap_ratio,
-            clustering_k=getattr(locals(), 'clustering_k', None),
-            min_frequency=getattr(locals(), 'min_frequency', 2),
-            template_threshold=getattr(locals(), 'template_threshold', 0.8)
+            clustering_k=getattr(locals(), "clustering_k", None),
+            min_frequency=getattr(locals(), "min_frequency", 2),
+            template_threshold=getattr(locals(), "template_threshold", 0.8),
         )
 
 
@@ -393,7 +409,7 @@ class AdaptiveCompressor(CompressorBase):
     def __init__(
         self,
         model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
-        enable_caching: bool = True
+        enable_caching: bool = True,
     ):
         super().__init__(model_name)
 
@@ -406,7 +422,7 @@ class AdaptiveCompressor(CompressorBase):
             CompressionStrategy.HIERARCHICAL: self._hierarchical_compression,
             CompressionStrategy.SEMANTIC_CLUSTERING: self._semantic_clustering_compression,
             CompressionStrategy.FREQUENCY_BASED: self._frequency_based_compression,
-            CompressionStrategy.TEMPLATE_MATCHING: self._template_matching_compression
+            CompressionStrategy.TEMPLATE_MATCHING: self._template_matching_compression,
         }
 
         # Performance cache
@@ -420,8 +436,8 @@ class AdaptiveCompressor(CompressorBase):
         characteristics = self.content_analyzer.analyze_content(text)
 
         # Select optimal strategy
-        target_ratio = kwargs.get('compression_ratio', 8.0)
-        prefer_speed = kwargs.get('prefer_speed', False)
+        target_ratio = kwargs.get("compression_ratio", 8.0)
+        prefer_speed = kwargs.get("prefer_speed", False)
 
         parameters = self.strategy_selector.select_strategy(
             characteristics, target_ratio, prefer_speed
@@ -437,16 +453,18 @@ class AdaptiveCompressor(CompressorBase):
             parameters.strategy,
             characteristics.content_type,
             result.compression_ratio,
-            processing_time
+            processing_time,
         )
 
         # Add adaptive metadata
-        result.metadata.update({
-            'content_type': characteristics.content_type.value,
-            'selected_strategy': parameters.strategy.value,
-            'content_complexity': characteristics.complexity_score,
-            'adaptive_compression': True
-        })
+        result.metadata.update(
+            {
+                "content_type": characteristics.content_type.value,
+                "selected_strategy": parameters.strategy.value,
+                "content_complexity": characteristics.complexity_score,
+                "adaptive_compression": True,
+            }
+        )
 
         return result
 
@@ -454,7 +472,7 @@ class AdaptiveCompressor(CompressorBase):
         self,
         text: str,
         params: CompressionParameters,
-        characteristics: ContentCharacteristics
+        characteristics: ContentCharacteristics,
     ) -> CompressionResult:
         """Hierarchical compression implementation."""
         from .core import ContextCompressor
@@ -464,7 +482,7 @@ class AdaptiveCompressor(CompressorBase):
             model_name=self.model_name,
             chunk_size=params.chunk_size,
             compression_ratio=params.compression_ratio,
-            overlap_ratio=params.overlap_ratio
+            overlap_ratio=params.overlap_ratio,
         )
 
         return compressor.compress(text)
@@ -473,7 +491,7 @@ class AdaptiveCompressor(CompressorBase):
         self,
         text: str,
         params: CompressionParameters,
-        characteristics: ContentCharacteristics
+        characteristics: ContentCharacteristics,
     ) -> CompressionResult:
         """Semantic clustering-based compression."""
         start_time = time.time()
@@ -493,6 +511,7 @@ class AdaptiveCompressor(CompressorBase):
 
         try:
             from sklearn.cluster import KMeans
+
             kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
             cluster_labels = kmeans.fit_predict(embeddings)
 
@@ -503,8 +522,12 @@ class AdaptiveCompressor(CompressorBase):
                 if not np.any(cluster_mask):
                     continue
 
-                cluster_chunks = [chunks[j] for j in range(len(chunks)) if cluster_mask[j]]
-                cluster_embeddings = [embeddings[j] for j in range(len(embeddings)) if cluster_mask[j]]
+                cluster_chunks = [
+                    chunks[j] for j in range(len(chunks)) if cluster_mask[j]
+                ]
+                cluster_embeddings = [
+                    embeddings[j] for j in range(len(embeddings)) if cluster_mask[j]
+                ]
 
                 # Average embeddings in cluster
                 cluster_center = np.mean(cluster_embeddings, axis=0)
@@ -518,12 +541,12 @@ class AdaptiveCompressor(CompressorBase):
                 mega_token = MegaToken(
                     vector=cluster_center,
                     metadata={
-                        'cluster_id': i,
-                        'cluster_size': len(cluster_chunks),
-                        'representative_text': representative_text,
-                        'compression_method': 'semantic_clustering'
+                        "cluster_id": i,
+                        "cluster_size": len(cluster_chunks),
+                        "representative_text": representative_text,
+                        "compression_method": "semantic_clustering",
                     },
-                    confidence=coherence
+                    confidence=coherence,
                 )
                 mega_tokens.append(mega_token)
 
@@ -538,11 +561,11 @@ class AdaptiveCompressor(CompressorBase):
                     mega_token = MegaToken(
                         vector=embeddings[idx],
                         metadata={
-                            'index': i,
-                            'source_chunk': chunks[idx],
-                            'compression_method': 'simple_sampling'
+                            "index": i,
+                            "source_chunk": chunks[idx],
+                            "compression_method": "simple_sampling",
                         },
-                        confidence=0.7
+                        confidence=0.7,
                     )
                     mega_tokens.append(mega_token)
 
@@ -556,17 +579,17 @@ class AdaptiveCompressor(CompressorBase):
             compression_ratio=original_length / max(len(mega_tokens), 1),
             processing_time=processing_time,
             metadata={
-                'strategy': 'semantic_clustering',
-                'clusters': k if 'kmeans' in locals() else len(mega_tokens),
-                'original_chunks': len(chunks)
-            }
+                "strategy": "semantic_clustering",
+                "clusters": k if "kmeans" in locals() else len(mega_tokens),
+                "original_chunks": len(chunks),
+            },
         )
 
     def _frequency_based_compression(
         self,
         text: str,
         params: CompressionParameters,
-        characteristics: ContentCharacteristics
+        characteristics: ContentCharacteristics,
     ) -> CompressionResult:
         """Frequency-based compression for repetitive content."""
         start_time = time.time()
@@ -580,7 +603,7 @@ class AdaptiveCompressor(CompressorBase):
                 max_features=1000,
                 min_df=params.min_frequency,
                 ngram_range=(1, 3),
-                stop_words='english'
+                stop_words="english",
             )
 
             tfidf_matrix = vectorizer.fit_transform(chunks)
@@ -609,18 +632,24 @@ class AdaptiveCompressor(CompressorBase):
                 # Get top features for this chunk
                 chunk_features = tfidf_matrix[chunk_idx].toarray()[0]
                 top_feature_indices = np.argsort(chunk_features)[::-1][:10]
-                top_features = [feature_names[idx] for idx in top_feature_indices if chunk_features[idx] > 0]
+                top_features = [
+                    feature_names[idx]
+                    for idx in top_feature_indices
+                    if chunk_features[idx] > 0
+                ]
 
                 mega_token = MegaToken(
                     vector=embedding,
                     metadata={
-                        'chunk_index': chunk_idx,
-                        'tfidf_score': float(chunk_scores[chunk_idx]),
-                        'top_features': top_features,
-                        'source_text': chunk[:200] + "..." if len(chunk) > 200 else chunk,
-                        'compression_method': 'frequency_based'
+                        "chunk_index": chunk_idx,
+                        "tfidf_score": float(chunk_scores[chunk_idx]),
+                        "top_features": top_features,
+                        "source_text": (
+                            chunk[:200] + "..." if len(chunk) > 200 else chunk
+                        ),
+                        "compression_method": "frequency_based",
                     },
-                    confidence=min(1.0, chunk_scores[chunk_idx] / 10.0)
+                    confidence=min(1.0, chunk_scores[chunk_idx] / 10.0),
                 )
                 mega_tokens.append(mega_token)
 
@@ -638,17 +667,17 @@ class AdaptiveCompressor(CompressorBase):
             compression_ratio=original_length / max(len(mega_tokens), 1),
             processing_time=processing_time,
             metadata={
-                'strategy': 'frequency_based',
-                'min_frequency': params.min_frequency,
-                'selected_chunks': len(mega_tokens)
-            }
+                "strategy": "frequency_based",
+                "min_frequency": params.min_frequency,
+                "selected_chunks": len(mega_tokens),
+            },
         )
 
     def _template_matching_compression(
         self,
         text: str,
         params: CompressionParameters,
-        characteristics: ContentCharacteristics
+        characteristics: ContentCharacteristics,
     ) -> CompressionResult:
         """Template-based compression for structured content."""
         start_time = time.time()
@@ -660,10 +689,12 @@ class AdaptiveCompressor(CompressorBase):
         # Group chunks by template similarity
         template_groups = {}
         for i, chunk in enumerate(chunks):
-            best_template = self._find_best_template(chunk, templates, params.template_threshold)
+            best_template = self._find_best_template(
+                chunk, templates, params.template_threshold
+            )
 
             if best_template:
-                template_id = best_template['id']
+                template_id = best_template["id"]
                 if template_id not in template_groups:
                     template_groups[template_id] = []
                 template_groups[template_id].append((i, chunk))
@@ -696,13 +727,17 @@ class AdaptiveCompressor(CompressorBase):
             mega_token = MegaToken(
                 vector=avg_embedding,
                 metadata={
-                    'template_id': template_id,
-                    'instances': len(group_chunks),
-                    'representative_text': representative_text[:200] + "..." if len(representative_text) > 200 else representative_text,
-                    'compression_method': 'template_matching',
-                    'chunk_indices': group_indices
+                    "template_id": template_id,
+                    "instances": len(group_chunks),
+                    "representative_text": (
+                        representative_text[:200] + "..."
+                        if len(representative_text) > 200
+                        else representative_text
+                    ),
+                    "compression_method": "template_matching",
+                    "chunk_indices": group_indices,
                 },
-                confidence=min(1.0, len(group_chunks) / 10.0)
+                confidence=min(1.0, len(group_chunks) / 10.0),
             )
             mega_tokens.append(mega_token)
 
@@ -716,13 +751,15 @@ class AdaptiveCompressor(CompressorBase):
             compression_ratio=original_length / max(len(mega_tokens), 1),
             processing_time=processing_time,
             metadata={
-                'strategy': 'template_matching',
-                'templates_found': len(templates),
-                'template_groups': len(template_groups)
-            }
+                "strategy": "template_matching",
+                "templates_found": len(templates),
+                "template_groups": len(template_groups),
+            },
         )
 
-    def _chunk_text(self, text: str, chunk_size: int, overlap_ratio: float) -> list[str]:
+    def _chunk_text(
+        self, text: str, chunk_size: int, overlap_ratio: float
+    ) -> list[str]:
         """Chunk text with overlapping segments."""
         words = text.split()
         if len(words) <= chunk_size:
@@ -733,7 +770,7 @@ class AdaptiveCompressor(CompressorBase):
         step_size = chunk_size - overlap_size
 
         for i in range(0, len(words), step_size):
-            chunk_words = words[i:i + chunk_size]
+            chunk_words = words[i : i + chunk_size]
             if chunk_words:
                 chunks.append(" ".join(chunk_words))
 
@@ -741,7 +778,7 @@ class AdaptiveCompressor(CompressorBase):
 
     def _encode_chunks(self, chunks: list[str]) -> list[np.ndarray]:
         """Encode text chunks into embeddings."""
-        if hasattr(self.model, 'encode'):
+        if hasattr(self.model, "encode"):
             embeddings = self.model.encode(chunks, convert_to_numpy=True)
             return [emb for emb in embeddings]
         else:
@@ -753,7 +790,7 @@ class AdaptiveCompressor(CompressorBase):
                     return_tensors="pt",
                     padding=True,
                     truncation=True,
-                    max_length=512
+                    max_length=512,
                 ).to(self.device)
 
                 with torch.no_grad():
@@ -789,10 +826,7 @@ class AdaptiveCompressor(CompressorBase):
         return float(np.mean(similarities)) if similarities else 0.0
 
     def _simple_frequency_fallback(
-        self,
-        text: str,
-        chunks: list[str],
-        params: CompressionParameters
+        self, text: str, chunks: list[str], params: CompressionParameters
     ) -> list[MegaToken]:
         """Simple frequency-based fallback without sklearn."""
         # Count word frequencies
@@ -804,8 +838,9 @@ class AdaptiveCompressor(CompressorBase):
 
         # Score chunks by high-frequency word coverage
         chunk_scores = []
-        high_freq_words = set(word for word, count in word_counts.items()
-                             if count >= params.min_frequency)
+        high_freq_words = set(
+            word for word, count in word_counts.items() if count >= params.min_frequency
+        )
 
         for chunk in chunks:
             words = set(chunk.lower().split())
@@ -814,8 +849,9 @@ class AdaptiveCompressor(CompressorBase):
 
         # Select top chunks
         target_count = max(1, int(len(chunks) / params.compression_ratio))
-        top_indices = sorted(range(len(chunk_scores)),
-                           key=lambda i: chunk_scores[i], reverse=True)[:target_count]
+        top_indices = sorted(
+            range(len(chunk_scores)), key=lambda i: chunk_scores[i], reverse=True
+        )[:target_count]
 
         # Create mega-tokens
         mega_tokens = []
@@ -825,18 +861,24 @@ class AdaptiveCompressor(CompressorBase):
             mega_token = MegaToken(
                 vector=embeddings[chunk_idx],
                 metadata={
-                    'chunk_index': chunk_idx,
-                    'frequency_score': chunk_scores[chunk_idx],
-                    'source_text': chunks[chunk_idx][:200] + "..." if len(chunks[chunk_idx]) > 200 else chunks[chunk_idx],
-                    'compression_method': 'simple_frequency'
+                    "chunk_index": chunk_idx,
+                    "frequency_score": chunk_scores[chunk_idx],
+                    "source_text": (
+                        chunks[chunk_idx][:200] + "..."
+                        if len(chunks[chunk_idx]) > 200
+                        else chunks[chunk_idx]
+                    ),
+                    "compression_method": "simple_frequency",
                 },
-                confidence=min(1.0, chunk_scores[chunk_idx] / 20.0)
+                confidence=min(1.0, chunk_scores[chunk_idx] / 20.0),
             )
             mega_tokens.append(mega_token)
 
         return mega_tokens
 
-    def _extract_templates(self, chunks: list[str], threshold: float) -> list[dict[str, Any]]:
+    def _extract_templates(
+        self, chunks: list[str], threshold: float
+    ) -> list[dict[str, Any]]:
         """Extract templates from chunks."""
         templates = []
 
@@ -845,39 +887,38 @@ class AdaptiveCompressor(CompressorBase):
             # Look for common structures in code or documentation
 
             # Code patterns
-            if re.search(r'\b(def|class|function|import)\b', chunk):
-                template_type = 'code_definition'
-            elif re.search(r'^\s*#.*$', chunk, re.MULTILINE):
-                template_type = 'comment_block'
-            elif re.search(r'^#{1,6}\s+', chunk, re.MULTILINE):
-                template_type = 'markdown_header'
+            if re.search(r"\b(def|class|function|import)\b", chunk):
+                template_type = "code_definition"
+            elif re.search(r"^\s*#.*$", chunk, re.MULTILINE):
+                template_type = "comment_block"
+            elif re.search(r"^#{1,6}\s+", chunk, re.MULTILINE):
+                template_type = "markdown_header"
             else:
                 continue  # No clear template pattern
 
-            templates.append({
-                'id': f"{template_type}_{len(templates)}",
-                'type': template_type,
-                'example': chunk,
-                'pattern': self._create_pattern(chunk, template_type)
-            })
+            templates.append(
+                {
+                    "id": f"{template_type}_{len(templates)}",
+                    "type": template_type,
+                    "example": chunk,
+                    "pattern": self._create_pattern(chunk, template_type),
+                }
+            )
 
         return templates
 
     def _create_pattern(self, text: str, template_type: str) -> str:
         """Create a pattern from template text."""
         # Simplified pattern creation
-        if template_type == 'code_definition':
-            return re.sub(r'\b[a-zA-Z_]\w*\b', '<IDENTIFIER>', text)
-        elif template_type == 'markdown_header':
-            return re.sub(r'#{1,6}\s+.*$', '# <HEADER>', text, flags=re.MULTILINE)
+        if template_type == "code_definition":
+            return re.sub(r"\b[a-zA-Z_]\w*\b", "<IDENTIFIER>", text)
+        elif template_type == "markdown_header":
+            return re.sub(r"#{1,6}\s+.*$", "# <HEADER>", text, flags=re.MULTILINE)
         else:
             return text
 
     def _find_best_template(
-        self,
-        chunk: str,
-        templates: list[dict[str, Any]],
-        threshold: float
+        self, chunk: str, templates: list[dict[str, Any]], threshold: float
     ) -> dict[str, Any] | None:
         """Find best matching template for chunk."""
         best_match = None
@@ -885,7 +926,7 @@ class AdaptiveCompressor(CompressorBase):
 
         for template in templates:
             # Simple similarity based on common words
-            template_words = set(template['example'].lower().split())
+            template_words = set(template["example"].lower().split())
             chunk_words = set(chunk.lower().split())
 
             if len(template_words) == 0:
@@ -919,26 +960,26 @@ class AdaptiveCompressor(CompressorBase):
         strategy: CompressionStrategy,
         content_type: ContentType,
         compression_ratio: float,
-        processing_time: float
+        processing_time: float,
     ):
         """Update strategy performance tracking."""
         key = (strategy, content_type)
 
         if key not in self.strategy_performance:
             self.strategy_performance[key] = {
-                'count': 0,
-                'total_ratio': 0.0,
-                'total_time': 0.0,
-                'best_ratio': 0.0,
-                'best_time': float('inf')
+                "count": 0,
+                "total_ratio": 0.0,
+                "total_time": 0.0,
+                "best_ratio": 0.0,
+                "best_time": float("inf"),
             }
 
         perf = self.strategy_performance[key]
-        perf['count'] += 1
-        perf['total_ratio'] += compression_ratio
-        perf['total_time'] += processing_time
-        perf['best_ratio'] = max(perf['best_ratio'], compression_ratio)
-        perf['best_time'] = min(perf['best_time'], processing_time)
+        perf["count"] += 1
+        perf["total_ratio"] += compression_ratio
+        perf["total_time"] += processing_time
+        perf["best_ratio"] = max(perf["best_ratio"], compression_ratio)
+        perf["best_time"] = min(perf["best_time"], processing_time)
 
     def get_strategy_performance(self) -> dict[str, Any]:
         """Get strategy performance statistics."""
@@ -948,11 +989,11 @@ class AdaptiveCompressor(CompressorBase):
             key = f"{strategy.value}_{content_type.value}"
 
             results[key] = {
-                'count': perf['count'],
-                'avg_compression_ratio': perf['total_ratio'] / perf['count'],
-                'avg_processing_time': perf['total_time'] / perf['count'],
-                'best_compression_ratio': perf['best_ratio'],
-                'best_processing_time': perf['best_time']
+                "count": perf["count"],
+                "avg_compression_ratio": perf["total_ratio"] / perf["count"],
+                "avg_processing_time": perf["total_time"] / perf["count"],
+                "best_compression_ratio": perf["best_ratio"],
+                "best_processing_time": perf["best_time"],
             }
 
         return results
@@ -965,12 +1006,12 @@ class AdaptiveCompressor(CompressorBase):
         # Reconstruct based on metadata
         parts = []
         for token in mega_tokens:
-            if 'representative_text' in token.metadata:
-                parts.append(token.metadata['representative_text'])
-            elif 'source_text' in token.metadata:
-                parts.append(token.metadata['source_text'])
-            elif 'source_chunk' in token.metadata:
-                parts.append(token.metadata['source_chunk'])
+            if "representative_text" in token.metadata:
+                parts.append(token.metadata["representative_text"])
+            elif "source_text" in token.metadata:
+                parts.append(token.metadata["source_text"])
+            elif "source_chunk" in token.metadata:
+                parts.append(token.metadata["source_chunk"])
 
         return " ".join(parts) if parts else ""
 
@@ -982,7 +1023,7 @@ class StreamingCompressor:
         self,
         base_compressor: AdaptiveCompressor,
         window_size: int = 1000,
-        compression_interval: int = 100
+        compression_interval: int = 100,
     ):
         self.base_compressor = base_compressor
         self.window_size = window_size
@@ -993,7 +1034,7 @@ class StreamingCompressor:
             window_tokens=[],
             processed_count=0,
             total_compression_ratio=1.0,
-            last_update=time.time()
+            last_update=time.time(),
         )
 
         self._lock = threading.RLock()
@@ -1043,10 +1084,10 @@ class StreamingCompressor:
         """Get streaming statistics."""
         with self._lock:
             return {
-                'buffer_size': len(self.stream_state.buffer),
-                'processed_count': self.stream_state.processed_count,
-                'current_tokens': len(self.stream_state.window_tokens),
-                'compression_ratio': self.stream_state.total_compression_ratio,
-                'last_update': self.stream_state.last_update,
-                'checksum': self.stream_state.checksum
+                "buffer_size": len(self.stream_state.buffer),
+                "processed_count": self.stream_state.processed_count,
+                "current_tokens": len(self.stream_state.window_tokens),
+                "compression_ratio": self.stream_state.total_compression_ratio,
+                "last_update": self.stream_state.last_update,
+                "checksum": self.stream_state.checksum,
             }

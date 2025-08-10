@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 class CloudProvider(str, Enum):
     """Supported cloud providers."""
+
     AWS = "aws"
     GCP = "gcp"
     AZURE = "azure"
@@ -36,6 +37,7 @@ class CloudProvider(str, Enum):
 
 class RegionStatus(str, Enum):
     """Region health status."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -44,6 +46,7 @@ class RegionStatus(str, Enum):
 
 class RoutingStrategy(str, Enum):
     """Load balancing routing strategies."""
+
     ROUND_ROBIN = "round_robin"
     LATENCY_BASED = "latency_based"
     CAPACITY_BASED = "capacity_based"
@@ -54,6 +57,7 @@ class RoutingStrategy(str, Enum):
 @dataclass
 class RegionInfo:
     """Information about a deployment region."""
+
     region_id: str
     cloud_provider: CloudProvider
     endpoint: str
@@ -70,6 +74,7 @@ class RegionInfo:
 @dataclass
 class LoadBalancingDecision:
     """Result of load balancing decision."""
+
     selected_region: RegionInfo
     reason: str
     alternatives: list[RegionInfo]
@@ -79,6 +84,7 @@ class LoadBalancingDecision:
 @dataclass
 class ReplicationTask:
     """Data replication task."""
+
     task_id: str
     source_region: str
     target_regions: list[str]
@@ -162,12 +168,16 @@ class HealthChecker:
                     region.error_rate = 0.0
 
                     # Update capacity metrics if available
-                    if 'active_tasks' in health_data and 'queue_size' in health_data:
-                        active_tasks = health_data['active_tasks']
-                        queue_size = health_data['queue_size']
-                        region.current_load = (active_tasks + queue_size) / region.capacity
+                    if "active_tasks" in health_data and "queue_size" in health_data:
+                        active_tasks = health_data["active_tasks"]
+                        queue_size = health_data["queue_size"]
+                        region.current_load = (
+                            active_tasks + queue_size
+                        ) / region.capacity
 
-                    logger.debug(f"Region {region.region_id} health: OK (latency: {latency:.2f}s)")
+                    logger.debug(
+                        f"Region {region.region_id} health: OK (latency: {latency:.2f}s)"
+                    )
 
                 else:
                     self._mark_region_unhealthy(region, f"HTTP {response.status_code}")
@@ -188,7 +198,8 @@ class HealthChecker:
     def get_healthy_regions(self) -> list[RegionInfo]:
         """Get list of healthy regions."""
         return [
-            region for region in self.regions.values()
+            region
+            for region in self.regions.values()
             if region.status == RegionStatus.HEALTHY
         ]
 
@@ -199,7 +210,7 @@ class LoadBalancer:
     def __init__(
         self,
         regions: list[RegionInfo],
-        default_strategy: RoutingStrategy = RoutingStrategy.LATENCY_BASED
+        default_strategy: RoutingStrategy = RoutingStrategy.LATENCY_BASED,
     ):
         self.regions = {r.region_id: r for r in regions}
         self.default_strategy = default_strategy
@@ -210,16 +221,16 @@ class LoadBalancer:
 
         # Client location mapping (simplified)
         self.geographic_mapping = {
-            'us': ['us-east-1', 'us-west-2'],
-            'eu': ['europe-west1', 'europe-north1'],
-            'asia': ['asia-southeast1', 'asia-northeast1']
+            "us": ["us-east-1", "us-west-2"],
+            "eu": ["europe-west1", "europe-north1"],
+            "asia": ["asia-southeast1", "asia-northeast1"],
         }
 
     async def select_region(
         self,
         strategy: RoutingStrategy | None = None,
         client_location: str | None = None,
-        exclude_regions: set[str] | None = None
+        exclude_regions: set[str] | None = None,
     ) -> LoadBalancingDecision:
         """Select optimal region based on strategy."""
         strategy = strategy or self.default_strategy
@@ -227,17 +238,23 @@ class LoadBalancer:
 
         # Get healthy regions
         available_regions = [
-            region for region in self.regions.values()
-            if (region.status == RegionStatus.HEALTHY and
-                region.region_id not in exclude_regions)
+            region
+            for region in self.regions.values()
+            if (
+                region.status == RegionStatus.HEALTHY
+                and region.region_id not in exclude_regions
+            )
         ]
 
         if not available_regions:
             # Fallback to degraded regions if no healthy ones
             available_regions = [
-                region for region in self.regions.values()
-                if (region.status == RegionStatus.DEGRADED and
-                    region.region_id not in exclude_regions)
+                region
+                for region in self.regions.values()
+                if (
+                    region.status == RegionStatus.DEGRADED
+                    and region.region_id not in exclude_regions
+                )
             ]
 
         if not available_regions:
@@ -251,7 +268,9 @@ class LoadBalancer:
         elif strategy == RoutingStrategy.CAPACITY_BASED:
             selected = await self._capacity_based_selection(available_regions)
         elif strategy == RoutingStrategy.GEOGRAPHIC:
-            selected = await self._geographic_selection(available_regions, client_location)
+            selected = await self._geographic_selection(
+                available_regions, client_location
+            )
         else:  # RANDOM
             selected = random.choice(available_regions)
 
@@ -259,7 +278,7 @@ class LoadBalancer:
             selected_region=selected,
             reason=f"Selected by {strategy.value} strategy",
             alternatives=[r for r in available_regions if r != selected],
-            routing_strategy=strategy
+            routing_strategy=strategy,
         )
 
     async def _round_robin_selection(self, regions: list[RegionInfo]) -> RegionInfo:
@@ -313,9 +332,7 @@ class LoadBalancer:
         return min(available_capacity_regions, key=lambda r: r.current_load)
 
     async def _geographic_selection(
-        self,
-        regions: list[RegionInfo],
-        client_location: str | None
+        self, regions: list[RegionInfo], client_location: str | None
     ) -> RegionInfo:
         """Geographic proximity-based selection."""
         if not client_location:
@@ -326,9 +343,7 @@ class LoadBalancer:
         preferred_region_ids = self.geographic_mapping.get(client_location, [])
 
         # Filter available regions by preference
-        preferred_regions = [
-            r for r in regions if r.location in preferred_region_ids
-        ]
+        preferred_regions = [r for r in regions if r.location in preferred_region_ids]
 
         if preferred_regions:
             # Select best from preferred regions based on load
@@ -378,7 +393,7 @@ class DataReplicator:
         data_key: str,
         source_region: str,
         target_regions: list[str],
-        priority: int = 5
+        priority: int = 5,
     ) -> str:
         """Queue data for replication."""
         task_id = str(uuid.uuid4())
@@ -389,7 +404,7 @@ class DataReplicator:
             target_regions=target_regions,
             data_type=data_type,
             data_key=data_key,
-            priority=priority
+            priority=priority,
         )
 
         self.replication_tasks[task_id] = task
@@ -407,8 +422,7 @@ class DataReplicator:
                 # Get task from queue with timeout
                 try:
                     task = await asyncio.wait_for(
-                        self.replication_queue.get(),
-                        timeout=1.0
+                        self.replication_queue.get(), timeout=1.0
                     )
                 except asyncio.TimeoutError:
                     continue
@@ -478,13 +492,13 @@ class FailoverManager:
         primary_region: str,
         backup_regions: list[str],
         auto_failover: bool = True,
-        failover_threshold: float = 0.5  # Error rate threshold
+        failover_threshold: float = 0.5,  # Error rate threshold
     ):
         """Configure failover rules for a region."""
         self.failover_rules[primary_region] = {
-            'backup_regions': backup_regions,
-            'auto_failover': auto_failover,
-            'threshold': failover_threshold
+            "backup_regions": backup_regions,
+            "auto_failover": auto_failover,
+            "threshold": failover_threshold,
         }
 
     async def check_failover_conditions(self) -> list[str]:
@@ -498,9 +512,11 @@ class FailoverManager:
             rules = self.failover_rules[region_id]
 
             # Check if region is unhealthy and exceeds threshold
-            if (region.status == RegionStatus.UNHEALTHY and
-                region.error_rate > rules['threshold'] and
-                rules['auto_failover']):
+            if (
+                region.status == RegionStatus.UNHEALTHY
+                and region.error_rate > rules["threshold"]
+                and rules["auto_failover"]
+            ):
 
                 regions_to_failover.append(region_id)
 
@@ -513,13 +529,16 @@ class FailoverManager:
             return False
 
         rules = self.failover_rules[primary_region]
-        backup_regions = rules['backup_regions']
+        backup_regions = rules["backup_regions"]
 
         # Find healthy backup region
         healthy_backups = [
-            backup for backup in backup_regions
-            if (backup in self.regions and
-                self.regions[backup].status == RegionStatus.HEALTHY)
+            backup
+            for backup in backup_regions
+            if (
+                backup in self.regions
+                and self.regions[backup].status == RegionStatus.HEALTHY
+            )
         ]
 
         if not healthy_backups:
@@ -528,17 +547,16 @@ class FailoverManager:
 
         # Select best backup region (lowest load)
         selected_backup = min(
-            healthy_backups,
-            key=lambda r: self.regions[r].current_load
+            healthy_backups, key=lambda r: self.regions[r].current_load
         )
 
         # Record failover
         failover_id = str(uuid.uuid4())
         self.active_failovers[failover_id] = {
-            'primary_region': primary_region,
-            'backup_region': selected_backup,
-            'started_at': time.time(),
-            'status': 'active'
+            "primary_region": primary_region,
+            "backup_region": selected_backup,
+            "started_at": time.time(),
+            "status": "active",
         }
 
         logger.warning(f"Executed failover from {primary_region} to {selected_backup}")
@@ -553,15 +571,17 @@ class FailoverManager:
         regions_to_failback = []
 
         for failover in self.active_failovers.values():
-            if failover['status'] != 'active':
+            if failover["status"] != "active":
                 continue
 
-            primary_region = failover['primary_region']
+            primary_region = failover["primary_region"]
 
             # Check if primary region is healthy again
-            if (primary_region in self.regions and
-                self.regions[primary_region].status == RegionStatus.HEALTHY and
-                self.regions[primary_region].error_rate < 0.1):
+            if (
+                primary_region in self.regions
+                and self.regions[primary_region].status == RegionStatus.HEALTHY
+                and self.regions[primary_region].error_rate < 0.1
+            ):
 
                 regions_to_failback.append(primary_region)
 
@@ -574,7 +594,7 @@ class MultiRegionManager:
     def __init__(
         self,
         regions: list[RegionInfo],
-        default_routing: RoutingStrategy = RoutingStrategy.LATENCY_BASED
+        default_routing: RoutingStrategy = RoutingStrategy.LATENCY_BASED,
     ):
         self.regions = {r.region_id: r for r in regions}
 
@@ -627,13 +647,17 @@ class MultiRegionManager:
         while self._running:
             try:
                 # Check for failover conditions
-                regions_to_failover = await self.failover_manager.check_failover_conditions()
+                regions_to_failover = (
+                    await self.failover_manager.check_failover_conditions()
+                )
 
                 for region_id in regions_to_failover:
                     await self.failover_manager.execute_failover(region_id)
 
                 # Check for failback conditions
-                regions_to_failback = await self.failover_manager.check_failback_conditions()
+                regions_to_failback = (
+                    await self.failover_manager.check_failback_conditions()
+                )
 
                 for region_id in regions_to_failback:
                     # Implement failback logic here
@@ -649,31 +673,26 @@ class MultiRegionManager:
     async def route_request(
         self,
         strategy: RoutingStrategy | None = None,
-        client_location: str | None = None
+        client_location: str | None = None,
     ) -> LoadBalancingDecision:
         """Route request to optimal region."""
         return await self.load_balancer.select_region(
-            strategy=strategy,
-            client_location=client_location
+            strategy=strategy, client_location=client_location
         )
 
     async def replicate_across_regions(
-        self,
-        data_type: str,
-        data_key: str,
-        source_region: str
+        self, data_type: str, data_key: str, source_region: str
     ) -> str:
         """Replicate data across all other regions."""
         target_regions = [
-            region_id for region_id in self.regions.keys()
-            if region_id != source_region
+            region_id for region_id in self.regions.keys() if region_id != source_region
         ]
 
         return await self.data_replicator.replicate_data(
             data_type=data_type,
             data_key=data_key,
             source_region=source_region,
-            target_regions=target_regions
+            target_regions=target_regions,
         )
 
     def get_region_status(self) -> dict[str, dict[str, Any]]:
@@ -682,38 +701,49 @@ class MultiRegionManager:
 
         for region_id, region in self.regions.items():
             status[region_id] = {
-                'status': region.status.value,
-                'location': region.location,
-                'cloud_provider': region.cloud_provider.value,
-                'current_load': region.current_load,
-                'average_latency': region.average_latency,
-                'error_rate': region.error_rate,
-                'last_health_check': region.last_health_check,
-                'capacity': region.capacity
+                "status": region.status.value,
+                "location": region.location,
+                "cloud_provider": region.cloud_provider.value,
+                "current_load": region.current_load,
+                "average_latency": region.average_latency,
+                "error_rate": region.error_rate,
+                "last_health_check": region.last_health_check,
+                "capacity": region.capacity,
             }
 
         return status
 
     def get_deployment_summary(self) -> dict[str, Any]:
         """Get comprehensive deployment summary."""
-        healthy_regions = len([r for r in self.regions.values() if r.status == RegionStatus.HEALTHY])
+        healthy_regions = len(
+            [r for r in self.regions.values() if r.status == RegionStatus.HEALTHY]
+        )
         total_capacity = sum(r.capacity for r in self.regions.values())
         total_load = sum(r.current_load * r.capacity for r in self.regions.values())
 
         return {
-            'total_regions': len(self.regions),
-            'healthy_regions': healthy_regions,
-            'total_capacity': total_capacity,
-            'current_load': total_load,
-            'utilization': (total_load / total_capacity) if total_capacity > 0 else 0,
-            'active_failovers': len([f for f in self.failover_manager.active_failovers.values()
-                                   if f['status'] == 'active']),
-            'replication_tasks': len(self.data_replicator.replication_tasks),
-            'cloud_providers': list(set(r.cloud_provider for r in self.regions.values())),
-            'regions_by_status': {
-                status.value: len([r for r in self.regions.values() if r.status == status])
+            "total_regions": len(self.regions),
+            "healthy_regions": healthy_regions,
+            "total_capacity": total_capacity,
+            "current_load": total_load,
+            "utilization": (total_load / total_capacity) if total_capacity > 0 else 0,
+            "active_failovers": len(
+                [
+                    f
+                    for f in self.failover_manager.active_failovers.values()
+                    if f["status"] == "active"
+                ]
+            ),
+            "replication_tasks": len(self.data_replicator.replication_tasks),
+            "cloud_providers": list(
+                set(r.cloud_provider for r in self.regions.values())
+            ),
+            "regions_by_status": {
+                status.value: len(
+                    [r for r in self.regions.values() if r.status == status]
+                )
                 for status in RegionStatus
-            }
+            },
         }
 
 
@@ -726,35 +756,35 @@ def create_example_regions() -> list[RegionInfo]:
             cloud_provider=CloudProvider.AWS,
             endpoint="https://api-us-east-1.example.com",
             location="us-east-1",
-            capacity=1000
+            capacity=1000,
         ),
         RegionInfo(
             region_id="us-west-2",
             cloud_provider=CloudProvider.AWS,
             endpoint="https://api-us-west-2.example.com",
             location="us-west-2",
-            capacity=800
+            capacity=800,
         ),
         RegionInfo(
             region_id="europe-west1",
             cloud_provider=CloudProvider.GCP,
             endpoint="https://api-eu-west1.example.com",
             location="europe-west1",
-            capacity=600
+            capacity=600,
         ),
         RegionInfo(
             region_id="asia-southeast1",
             cloud_provider=CloudProvider.GCP,
             endpoint="https://api-asia-se1.example.com",
             location="asia-southeast1",
-            capacity=400
-        )
+            capacity=400,
+        ),
     ]
 
 
 async def setup_multi_region_deployment(
     regions: list[RegionInfo] | None = None,
-    routing_strategy: RoutingStrategy = RoutingStrategy.LATENCY_BASED
+    routing_strategy: RoutingStrategy = RoutingStrategy.LATENCY_BASED,
 ) -> MultiRegionManager:
     """Setup and start multi-region deployment."""
     if regions is None:

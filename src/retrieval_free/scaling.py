@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DeviceInfo:
     """Information about available compute devices."""
+
     device_id: int
     device_type: str  # 'cuda', 'cpu', 'mps'
     memory_total: int  # in bytes
@@ -47,6 +48,7 @@ class DeviceInfo:
 @dataclass
 class ProcessingTask:
     """Represents a compression task with priority and metadata."""
+
     priority: int
     task_id: str
     text: str
@@ -71,36 +73,43 @@ class DeviceManager:
         devices = []
 
         # Add CPU
-        devices.append(DeviceInfo(
-            device_id=-1,
-            device_type="cpu",
-            memory_total=8 * 1024**3,  # Assume 8GB
-            memory_available=4 * 1024**3,
-            name="CPU"
-        ))
+        devices.append(
+            DeviceInfo(
+                device_id=-1,
+                device_type="cpu",
+                memory_total=8 * 1024**3,  # Assume 8GB
+                memory_available=4 * 1024**3,
+                name="CPU",
+            )
+        )
 
         # Add CUDA devices if available
         if torch.cuda.is_available():
             for i in range(torch.cuda.device_count()):
                 props = torch.cuda.get_device_properties(i)
-                devices.append(DeviceInfo(
-                    device_id=i,
-                    device_type="cuda",
-                    memory_total=props.total_memory,
-                    memory_available=props.total_memory - torch.cuda.memory_allocated(i),
-                    compute_capability=(props.major, props.minor),
-                    name=props.name
-                ))
+                devices.append(
+                    DeviceInfo(
+                        device_id=i,
+                        device_type="cuda",
+                        memory_total=props.total_memory,
+                        memory_available=props.total_memory
+                        - torch.cuda.memory_allocated(i),
+                        compute_capability=(props.major, props.minor),
+                        name=props.name,
+                    )
+                )
 
         # Add MPS device if available (Apple Silicon)
-        if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-            devices.append(DeviceInfo(
-                device_id=0,
-                device_type="mps",
-                memory_total=8 * 1024**3,  # Unified memory
-                memory_available=4 * 1024**3,
-                name="Apple Silicon MPS"
-            ))
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            devices.append(
+                DeviceInfo(
+                    device_id=0,
+                    device_type="mps",
+                    memory_total=8 * 1024**3,  # Unified memory
+                    memory_available=4 * 1024**3,
+                    name="Apple Silicon MPS",
+                )
+            )
 
         logger.info(f"Discovered {len(devices)} compute devices")
         return devices
@@ -110,18 +119,23 @@ class DeviceManager:
         with self._lock:
             # Filter devices with enough memory
             available_devices = [
-                d for d in self.devices
-                if d.memory_available >= memory_required and self.device_usage[d.device_id] < 0.9
+                d
+                for d in self.devices
+                if d.memory_available >= memory_required
+                and self.device_usage[d.device_id] < 0.9
             ]
 
             if not available_devices:
                 return None
 
             # Prefer CUDA, then MPS, then CPU
-            priority_order = {'cuda': 3, 'mps': 2, 'cpu': 1}
+            priority_order = {"cuda": 3, "mps": 2, "cpu": 1}
             available_devices.sort(
-                key=lambda d: (priority_order.get(d.device_type, 0), -self.device_usage[d.device_id]),
-                reverse=True
+                key=lambda d: (
+                    priority_order.get(d.device_type, 0),
+                    -self.device_usage[d.device_id],
+                ),
+                reverse=True,
             )
 
             return available_devices[0]
@@ -153,7 +167,7 @@ class MultiGPUProcessor:
         self.gpu_count = torch.cuda.device_count() if torch.cuda.is_available() else 0
         self.use_data_parallel = self.gpu_count > 1
 
-        if self.use_data_parallel and hasattr(self.compressor, 'model'):
+        if self.use_data_parallel and hasattr(self.compressor, "model"):
             self.compressor.model = DataParallel(self.compressor.model)
             logger.info(f"Enabled DataParallel across {self.gpu_count} GPUs")
 
@@ -171,7 +185,9 @@ class MultiGPUProcessor:
         # Multi-GPU processing
         return self._process_multi_gpu(texts, **kwargs)
 
-    def _process_single_device(self, texts: list[str], **kwargs) -> list[CompressionResult]:
+    def _process_single_device(
+        self, texts: list[str], **kwargs
+    ) -> list[CompressionResult]:
         """Process batch on single device with mixed precision."""
         device = self.device_manager.get_best_device()
         if not device:
@@ -201,10 +217,7 @@ class MultiGPUProcessor:
             for gpu_id, chunk in enumerate(chunks):
                 if chunk:  # Skip empty chunks
                     future = executor.submit(
-                        self._process_gpu_chunk,
-                        chunk,
-                        gpu_id,
-                        **kwargs
+                        self._process_gpu_chunk, chunk, gpu_id, **kwargs
                     )
                     futures.append(future)
 
@@ -220,12 +233,16 @@ class MultiGPUProcessor:
 
         return all_results
 
-    def _process_gpu_chunk(self, texts: list[str], gpu_id: int, **kwargs) -> list[CompressionResult]:
+    def _process_gpu_chunk(
+        self, texts: list[str], gpu_id: int, **kwargs
+    ) -> list[CompressionResult]:
         """Process a chunk of texts on specific GPU."""
         device = torch.device(f"cuda:{gpu_id}")
 
         # Move model to specific GPU for this thread
-        if hasattr(self.compressor, 'model') and not isinstance(self.compressor.model, DataParallel):
+        if hasattr(self.compressor, "model") and not isinstance(
+            self.compressor.model, DataParallel
+        ):
             original_device = next(self.compressor.model.parameters()).device
             self.compressor.model = self.compressor.model.to(device)
 
@@ -249,7 +266,7 @@ class MultiGPUProcessor:
     def _split_batch(self, items: list[Any], num_chunks: int) -> list[list[Any]]:
         """Split batch into roughly equal chunks."""
         chunk_size = math.ceil(len(items) / num_chunks)
-        return [items[i:i + chunk_size] for i in range(0, len(items), chunk_size)]
+        return [items[i : i + chunk_size] for i in range(0, len(items), chunk_size)]
 
 
 class AsyncProcessor:
@@ -260,7 +277,7 @@ class AsyncProcessor:
         compressor: CompressorBase,
         max_workers: int = 4,
         max_queue_size: int = 1000,
-        batch_size: int = 8
+        batch_size: int = 8,
     ):
         self.compressor = compressor
         self.max_workers = max_workers
@@ -314,20 +331,14 @@ class AsyncProcessor:
         logger.info("Stopped async processing workers")
 
     async def compress_async(
-        self,
-        text: str,
-        priority: int = 5,
-        **kwargs
+        self, text: str, priority: int = 5, **kwargs
     ) -> CompressionResult:
         """Compress text asynchronously."""
         task_id = f"task_{int(time.time() * 1000000)}"
 
         # Create task
         task = ProcessingTask(
-            priority=priority,
-            task_id=task_id,
-            text=text,
-            parameters=kwargs
+            priority=priority, task_id=task_id, text=text, parameters=kwargs
         )
 
         # Create future for result
@@ -349,10 +360,7 @@ class AsyncProcessor:
             self.result_futures.pop(task_id, None)
 
     def compress_batch_async(
-        self,
-        texts: list[str],
-        priority: int = 5,
-        **kwargs
+        self, texts: list[str], priority: int = 5, **kwargs
     ) -> list[Future]:
         """Submit a batch of texts for async processing."""
         futures = []
@@ -416,11 +424,13 @@ class AsyncProcessor:
                 future = self.result_futures.get(task.task_id)
                 if future and not future.done():
                     # Add processing metadata
-                    result.metadata.update({
-                        'async_processing_time': processing_time / len(batch),
-                        'batch_size': len(batch),
-                        'task_id': task.task_id
-                    })
+                    result.metadata.update(
+                        {
+                            "async_processing_time": processing_time / len(batch),
+                            "batch_size": len(batch),
+                            "task_id": task.task_id,
+                        }
+                    )
                     future.set_result(result)
 
         except Exception as e:
@@ -439,11 +449,11 @@ class AsyncProcessor:
     def get_queue_stats(self) -> dict[str, Any]:
         """Get queue statistics."""
         return {
-            'queue_size': self.task_queue.qsize(),
-            'max_queue_size': self.max_queue_size,
-            'active_futures': len(self.result_futures),
-            'workers_running': self._running,
-            'worker_count': len(self._worker_threads)
+            "queue_size": self.task_queue.qsize(),
+            "max_queue_size": self.max_queue_size,
+            "active_futures": len(self.result_futures),
+            "workers_running": self._running,
+            "worker_count": len(self._worker_threads),
         }
 
 
@@ -460,6 +470,7 @@ class DistributedProcessor:
         if use_ray:
             try:
                 import ray
+
                 if not ray.is_initialized():
                     ray.init(ignore_reinit_error=True)
                 self._ray_available = True
@@ -472,6 +483,7 @@ class DistributedProcessor:
             try:
                 import dask
                 from dask.distributed import Client
+
                 self._dask_client = Client(processes=False, silence_logs=False)
                 self._dask_available = True
                 logger.info("Dask initialized for distributed processing")
@@ -479,10 +491,7 @@ class DistributedProcessor:
                 logger.warning("Dask not available, using multiprocessing only")
 
     def process_distributed(
-        self,
-        texts: list[str],
-        num_workers: int | None = None,
-        **kwargs
+        self, texts: list[str], num_workers: int | None = None, **kwargs
     ) -> list[CompressionResult]:
         """Process texts using distributed computing."""
         if not texts:
@@ -498,10 +507,7 @@ class DistributedProcessor:
             return self._process_with_multiprocessing(texts, num_workers, **kwargs)
 
     def _process_with_ray(
-        self,
-        texts: list[str],
-        num_workers: int,
-        **kwargs
+        self, texts: list[str], num_workers: int, **kwargs
     ) -> list[CompressionResult]:
         """Process using Ray distributed framework."""
         import ray
@@ -525,8 +531,7 @@ class DistributedProcessor:
         # Split work into chunks
         chunk_size = max(1, len(texts) // num_workers)
         text_chunks = [
-            texts[i:i + chunk_size]
-            for i in range(0, len(texts), chunk_size)
+            texts[i : i + chunk_size] for i in range(0, len(texts), chunk_size)
         ]
 
         # Submit remote tasks
@@ -546,10 +551,7 @@ class DistributedProcessor:
         return all_results
 
     def _process_with_dask(
-        self,
-        texts: list[str],
-        num_workers: int,
-        **kwargs
+        self, texts: list[str], num_workers: int, **kwargs
     ) -> list[CompressionResult]:
         """Process using Dask distributed framework."""
         import dask
@@ -565,8 +567,7 @@ class DistributedProcessor:
 
         # Create delayed tasks
         delayed_results = [
-            compress_delayed(text, compressor_state, kwargs)
-            for text in texts
+            compress_delayed(text, compressor_state, kwargs) for text in texts
         ]
 
         # Compute results
@@ -574,12 +575,10 @@ class DistributedProcessor:
         return list(results)
 
     def _process_with_multiprocessing(
-        self,
-        texts: list[str],
-        num_workers: int,
-        **kwargs
+        self, texts: list[str], num_workers: int, **kwargs
     ) -> list[CompressionResult]:
         """Process using standard multiprocessing."""
+
         def worker_func(args):
             compressor_state, text_chunk, params = args
             compressor = self._reconstruct_compressor(compressor_state)
@@ -596,15 +595,11 @@ class DistributedProcessor:
         # Split work into chunks
         chunk_size = max(1, len(texts) // num_workers)
         text_chunks = [
-            texts[i:i + chunk_size]
-            for i in range(0, len(texts), chunk_size)
+            texts[i : i + chunk_size] for i in range(0, len(texts), chunk_size)
         ]
 
         # Prepare arguments
-        args_list = [
-            (compressor_state, chunk, kwargs)
-            for chunk in text_chunks
-        ]
+        args_list = [(compressor_state, chunk, kwargs) for chunk in text_chunks]
 
         # Process with multiprocessing
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
@@ -620,13 +615,13 @@ class DistributedProcessor:
     def _serialize_compressor(self) -> dict[str, Any]:
         """Serialize compressor for distributed processing."""
         return {
-            'model_name': getattr(self.compressor, 'model_name', ''),
-            'class_name': self.compressor.__class__.__name__,
-            'init_params': {
+            "model_name": getattr(self.compressor, "model_name", ""),
+            "class_name": self.compressor.__class__.__name__,
+            "init_params": {
                 attr: getattr(self.compressor, attr)
-                for attr in ['chunk_size', 'compression_ratio', 'overlap_ratio']
+                for attr in ["chunk_size", "compression_ratio", "overlap_ratio"]
                 if hasattr(self.compressor, attr)
-            }
+            },
         }
 
     def _reconstruct_compressor(self, state: dict[str, Any]) -> CompressorBase:
@@ -635,12 +630,14 @@ class DistributedProcessor:
         # In practice, you'd need more sophisticated serialization
         from .core import ContextCompressor
 
-        class_name = state.get('class_name', 'ContextCompressor')
+        class_name = state.get("class_name", "ContextCompressor")
 
-        if class_name == 'ContextCompressor':
+        if class_name == "ContextCompressor":
             return ContextCompressor(
-                model_name=state.get('model_name', 'sentence-transformers/all-MiniLM-L6-v2'),
-                **state.get('init_params', {})
+                model_name=state.get(
+                    "model_name", "sentence-transformers/all-MiniLM-L6-v2"
+                ),
+                **state.get("init_params", {}),
             )
 
         # Fallback to original compressor
@@ -657,7 +654,7 @@ class AutoScaler:
         max_workers: int = 16,
         scale_up_threshold: float = 0.8,
         scale_down_threshold: float = 0.3,
-        scale_interval: float = 30.0
+        scale_interval: float = 30.0,
     ):
         self.async_processor = async_processor
         self.min_workers = min_workers
@@ -704,12 +701,14 @@ class AutoScaler:
         queue_stats = self.async_processor.get_queue_stats()
 
         # Calculate utilization metrics
-        queue_utilization = queue_stats['queue_size'] / queue_stats['max_queue_size']
+        queue_utilization = queue_stats["queue_size"] / queue_stats["max_queue_size"]
         current_workers = len(self.async_processor._worker_threads)
 
         # Check if scaling up is needed
-        if (queue_utilization > self.scale_up_threshold and
-            current_workers < self.max_workers):
+        if (
+            queue_utilization > self.scale_up_threshold
+            and current_workers < self.max_workers
+        ):
 
             new_worker_count = min(self.max_workers, current_workers + 2)
             self._scale_workers(new_worker_count)
@@ -720,8 +719,10 @@ class AutoScaler:
             )
 
         # Check if scaling down is needed
-        elif (queue_utilization < self.scale_down_threshold and
-              current_workers > self.min_workers):
+        elif (
+            queue_utilization < self.scale_down_threshold
+            and current_workers > self.min_workers
+        ):
 
             new_worker_count = max(self.min_workers, current_workers - 1)
             self._scale_workers(new_worker_count)
@@ -739,8 +740,7 @@ class AutoScaler:
             # Scale up - add workers
             for _ in range(target_count - current_count):
                 worker = threading.Thread(
-                    target=self.async_processor._batch_worker,
-                    daemon=True
+                    target=self.async_processor._batch_worker, daemon=True
                 )
                 worker.start()
                 self.async_processor._worker_threads.append(worker)
@@ -767,11 +767,11 @@ class HighPerformanceCompressor(CompressorBase):
         enable_async: bool = True,
         enable_distributed: bool = False,
         enable_auto_scaling: bool = True,
-        **kwargs
+        **kwargs,
     ):
         # Don't call super().__init__ as we wrap an existing compressor
         self.base_compressor = base_compressor
-        self.model_name = getattr(base_compressor, 'model_name', 'unknown')
+        self.model_name = getattr(base_compressor, "model_name", "unknown")
 
         # Initialize scaling components
         self.multi_gpu_processor = (
@@ -802,15 +802,14 @@ class HighPerformanceCompressor(CompressorBase):
         # For single text, use base compressor with optional GPU optimization
         if self.multi_gpu_processor and self.multi_gpu_processor.gpu_count > 0:
             results = self.multi_gpu_processor.process_batch([text], **kwargs)
-            return results[0] if results else self.base_compressor.compress(text, **kwargs)
+            return (
+                results[0] if results else self.base_compressor.compress(text, **kwargs)
+            )
 
         return self.base_compressor.compress(text, **kwargs)
 
     def compress_batch(
-        self,
-        texts: list[str],
-        use_distributed: bool = False,
-        **kwargs
+        self, texts: list[str], use_distributed: bool = False, **kwargs
     ) -> list[CompressionResult]:
         """Compress batch of texts with optimal scaling strategy."""
         if not texts:
@@ -832,10 +831,7 @@ class HighPerformanceCompressor(CompressorBase):
             return [self.base_compressor.compress(text, **kwargs) for text in texts]
 
     async def compress_async(
-        self,
-        text: str,
-        priority: int = 5,
-        **kwargs
+        self, text: str, priority: int = 5, **kwargs
     ) -> CompressionResult:
         """Compress text asynchronously."""
         if self.async_processor:
@@ -851,25 +847,28 @@ class HighPerformanceCompressor(CompressorBase):
     def get_performance_stats(self) -> dict[str, Any]:
         """Get comprehensive performance statistics."""
         stats = {
-            'devices': [
+            "devices": [
                 {
-                    'device_id': d.device_id,
-                    'device_type': d.device_type,
-                    'name': d.name,
-                    'memory_total_mb': d.memory_total / 1024**2,
-                    'memory_available_mb': d.memory_available / 1024**2
+                    "device_id": d.device_id,
+                    "device_type": d.device_type,
+                    "name": d.name,
+                    "memory_total_mb": d.memory_total / 1024**2,
+                    "memory_available_mb": d.memory_available / 1024**2,
                 }
-                for d in (self.multi_gpu_processor.device_manager.devices
-                         if self.multi_gpu_processor else [])
+                for d in (
+                    self.multi_gpu_processor.device_manager.devices
+                    if self.multi_gpu_processor
+                    else []
+                )
             ],
-            'multi_gpu_enabled': self.multi_gpu_processor is not None,
-            'async_enabled': self.async_processor is not None,
-            'distributed_enabled': self.distributed_processor is not None,
-            'auto_scaling_enabled': self.auto_scaler is not None
+            "multi_gpu_enabled": self.multi_gpu_processor is not None,
+            "async_enabled": self.async_processor is not None,
+            "distributed_enabled": self.distributed_processor is not None,
+            "auto_scaling_enabled": self.auto_scaler is not None,
         }
 
         if self.async_processor:
-            stats['async_queue'] = self.async_processor.get_queue_stats()
+            stats["async_queue"] = self.async_processor.get_queue_stats()
 
         return stats
 

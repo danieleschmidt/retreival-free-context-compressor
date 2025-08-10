@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class DataClassification(Enum):
     """Data classification levels."""
+
     PUBLIC = "public"
     INTERNAL = "internal"
     CONFIDENTIAL = "confidential"
@@ -22,6 +23,7 @@ class DataClassification(Enum):
 
 class ProcessingPurpose(Enum):
     """Data processing purposes."""
+
     COMPRESSION = "compression"
     ANALYSIS = "analysis"
     TRAINING = "training"
@@ -31,6 +33,7 @@ class ProcessingPurpose(Enum):
 
 class LegalBasis(Enum):
     """GDPR legal basis for processing."""
+
     CONSENT = "consent"
     CONTRACT = "contract"
     LEGAL_OBLIGATION = "legal_obligation"
@@ -42,6 +45,7 @@ class LegalBasis(Enum):
 @dataclass
 class DataSubject:
     """Information about a data subject."""
+
     id: str
     email: str | None = None
     country: str | None = None
@@ -53,6 +57,7 @@ class DataSubject:
 @dataclass
 class ProcessingRecord:
     """Record of data processing activity."""
+
     id: str
     timestamp: datetime
     data_subject_id: str
@@ -73,21 +78,21 @@ class ComplianceManager:
         self.processing_records: list[ProcessingRecord] = []
         self.data_subjects: dict[str, DataSubject] = {}
         self.retention_policies: dict[ProcessingPurpose, int] = {
-            ProcessingPurpose.COMPRESSION: 30,     # 30 days
-            ProcessingPurpose.ANALYSIS: 90,       # 90 days
-            ProcessingPurpose.TRAINING: 365,      # 1 year
-            ProcessingPurpose.EVALUATION: 180,    # 6 months
-            ProcessingPurpose.RESEARCH: 1095,     # 3 years
+            ProcessingPurpose.COMPRESSION: 30,  # 30 days
+            ProcessingPurpose.ANALYSIS: 90,  # 90 days
+            ProcessingPurpose.TRAINING: 365,  # 1 year
+            ProcessingPurpose.EVALUATION: 180,  # 6 months
+            ProcessingPurpose.RESEARCH: 1095,  # 3 years
         }
 
         # Sensitive data patterns for detection
         self.sensitive_patterns = {
-            'email': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-            'phone': r'(\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}',
-            'ssn': r'\b\d{3}-\d{2}-\d{4}\b',
-            'credit_card': r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b',
-            'ip_address': r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',
-            'passport': r'\b[A-Z]{1,2}\d{6,9}\b',
+            "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+            "phone": r"(\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}",
+            "ssn": r"\b\d{3}-\d{2}-\d{4}\b",
+            "credit_card": r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b",
+            "ip_address": r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",
+            "passport": r"\b[A-Z]{1,2}\d{6,9}\b",
         }
 
     def register_data_subject(
@@ -95,16 +100,16 @@ class ComplianceManager:
         subject_id: str,
         email: str | None = None,
         country: str | None = None,
-        consent: bool = False
+        consent: bool = False,
     ) -> DataSubject:
         """Register a data subject.
-        
+
         Args:
             subject_id: Unique identifier for the data subject
             email: Email address (optional)
             country: Country code (optional)
             consent: Whether consent has been given
-            
+
         Returns:
             DataSubject instance
         """
@@ -113,7 +118,7 @@ class ComplianceManager:
             email=email,
             country=country,
             consent_status=consent,
-            consent_date=datetime.now() if consent else None
+            consent_date=datetime.now() if consent else None,
         )
 
         self.data_subjects[subject_id] = subject
@@ -127,10 +132,10 @@ class ComplianceManager:
         purpose: ProcessingPurpose,
         legal_basis: LegalBasis,
         processing_location: str = "local",
-        classification: DataClassification = DataClassification.INTERNAL
+        classification: DataClassification = DataClassification.INTERNAL,
     ) -> ProcessingRecord:
         """Record a data processing activity.
-        
+
         Args:
             data_subject_id: ID of the data subject
             data_content: Content being processed
@@ -138,7 +143,7 @@ class ComplianceManager:
             legal_basis: Legal basis for processing
             processing_location: Location where processing occurs
             classification: Data classification level
-            
+
         Returns:
             ProcessingRecord instance
         """
@@ -159,10 +164,10 @@ class ComplianceManager:
             processing_location=processing_location,
             data_hash=data_hash,
             metadata={
-                'content_length': len(data_content),
-                'sensitive_data_detected': sensitive_data,
-                'processing_version': '1.0'
-            }
+                "content_length": len(data_content),
+                "sensitive_data_detected": sensitive_data,
+                "processing_version": "1.0",
+            },
         )
 
         self.processing_records.append(record)
@@ -171,10 +176,10 @@ class ComplianceManager:
 
     def detect_sensitive_data(self, text: str) -> dict[str, list[str]]:
         """Detect sensitive data in text.
-        
+
         Args:
             text: Text to scan for sensitive data
-            
+
         Returns:
             Dictionary mapping data types to found instances
         """
@@ -184,17 +189,19 @@ class ComplianceManager:
             matches = re.findall(pattern, text, re.IGNORECASE)
             if matches:
                 # Hash the matches for privacy
-                hashed_matches = [hashlib.sha256(match.encode()).hexdigest()[:8] for match in matches]
+                hashed_matches = [
+                    hashlib.sha256(match.encode()).hexdigest()[:8] for match in matches
+                ]
                 detected[data_type] = hashed_matches
 
         return detected
 
     def check_consent(self, data_subject_id: str) -> bool:
         """Check if a data subject has given consent.
-        
+
         Args:
             data_subject_id: ID of the data subject
-            
+
         Returns:
             True if consent has been given and is valid
         """
@@ -206,17 +213,19 @@ class ComplianceManager:
             return False
 
         # Check if consent has been withdrawn
-        if subject.opt_out_date and subject.opt_out_date > (subject.consent_date or datetime.min):
+        if subject.opt_out_date and subject.opt_out_date > (
+            subject.consent_date or datetime.min
+        ):
             return False
 
         return True
 
     def withdraw_consent(self, data_subject_id: str) -> bool:
         """Withdraw consent for a data subject.
-        
+
         Args:
             data_subject_id: ID of the data subject
-            
+
         Returns:
             True if consent was successfully withdrawn
         """
@@ -232,24 +241,25 @@ class ComplianceManager:
 
     def get_data_subject_records(self, data_subject_id: str) -> list[ProcessingRecord]:
         """Get all processing records for a data subject.
-        
+
         Args:
             data_subject_id: ID of the data subject
-            
+
         Returns:
             List of processing records
         """
         return [
-            record for record in self.processing_records
+            record
+            for record in self.processing_records
             if record.data_subject_id == data_subject_id
         ]
 
     def delete_data_subject_records(self, data_subject_id: str) -> int:
         """Delete all records for a data subject (right to be forgotten).
-        
+
         Args:
             data_subject_id: ID of the data subject
-            
+
         Returns:
             Number of records deleted
         """
@@ -257,7 +267,8 @@ class ComplianceManager:
 
         # Remove processing records
         self.processing_records = [
-            record for record in self.processing_records
+            record
+            for record in self.processing_records
             if record.data_subject_id != data_subject_id
         ]
 
@@ -266,12 +277,14 @@ class ComplianceManager:
             del self.data_subjects[data_subject_id]
 
         deleted_count = initial_count - len(self.processing_records)
-        logger.info(f"Deleted {deleted_count} records for data subject: {data_subject_id}")
+        logger.info(
+            f"Deleted {deleted_count} records for data subject: {data_subject_id}"
+        )
         return deleted_count
 
     def get_expired_records(self) -> list[ProcessingRecord]:
         """Get records that have exceeded their retention period.
-        
+
         Returns:
             List of expired records
         """
@@ -279,7 +292,9 @@ class ComplianceManager:
         current_time = datetime.now()
 
         for record in self.processing_records:
-            retention_end = record.timestamp + timedelta(days=record.retention_period_days)
+            retention_end = record.timestamp + timedelta(
+                days=record.retention_period_days
+            )
             if current_time > retention_end:
                 expired.append(record)
 
@@ -287,7 +302,7 @@ class ComplianceManager:
 
     def cleanup_expired_records(self) -> int:
         """Clean up expired records.
-        
+
         Returns:
             Number of records cleaned up
         """
@@ -301,12 +316,14 @@ class ComplianceManager:
 
     def generate_privacy_report(self) -> dict[str, Any]:
         """Generate privacy compliance report.
-        
+
         Returns:
             Privacy report dictionary
         """
         total_subjects = len(self.data_subjects)
-        consented_subjects = sum(1 for s in self.data_subjects.values() if s.consent_status)
+        consented_subjects = sum(
+            1 for s in self.data_subjects.values() if s.consent_status
+        )
 
         # Processing statistics
         purpose_stats = {}
@@ -317,42 +334,58 @@ class ComplianceManager:
         # Classification statistics
         classification_stats = {}
         for classification in DataClassification:
-            count = sum(1 for r in self.processing_records if r.data_classification == classification)
+            count = sum(
+                1
+                for r in self.processing_records
+                if r.data_classification == classification
+            )
             classification_stats[classification.value] = count
 
         # Retention compliance
         expired_count = len(self.get_expired_records())
 
         return {
-            'report_date': datetime.now().isoformat(),
-            'data_subjects': {
-                'total': total_subjects,
-                'consented': consented_subjects,
-                'consent_rate': (consented_subjects / total_subjects) * 100 if total_subjects > 0 else 0
+            "report_date": datetime.now().isoformat(),
+            "data_subjects": {
+                "total": total_subjects,
+                "consented": consented_subjects,
+                "consent_rate": (
+                    (consented_subjects / total_subjects) * 100
+                    if total_subjects > 0
+                    else 0
+                ),
             },
-            'processing_activities': {
-                'total': len(self.processing_records),
-                'by_purpose': purpose_stats,
-                'by_classification': classification_stats
+            "processing_activities": {
+                "total": len(self.processing_records),
+                "by_purpose": purpose_stats,
+                "by_classification": classification_stats,
             },
-            'retention_compliance': {
-                'expired_records': expired_count,
-                'compliance_rate': ((len(self.processing_records) - expired_count) / len(self.processing_records)) * 100 if self.processing_records else 100
+            "retention_compliance": {
+                "expired_records": expired_count,
+                "compliance_rate": (
+                    (
+                        (len(self.processing_records) - expired_count)
+                        / len(self.processing_records)
+                    )
+                    * 100
+                    if self.processing_records
+                    else 100
+                ),
             },
-            'data_protection_measures': {
-                'encryption_at_rest': True,
-                'encryption_in_transit': True,
-                'access_controls': True,
-                'audit_logging': True
-            }
+            "data_protection_measures": {
+                "encryption_at_rest": True,
+                "encryption_in_transit": True,
+                "access_controls": True,
+                "audit_logging": True,
+            },
         }
 
     def export_data_subject_data(self, data_subject_id: str) -> dict[str, Any]:
         """Export all data for a data subject (data portability).
-        
+
         Args:
             data_subject_id: ID of the data subject
-            
+
         Returns:
             Exported data dictionary
         """
@@ -363,22 +396,22 @@ class ComplianceManager:
         records = self.get_data_subject_records(data_subject_id)
 
         export_data = {
-            'data_subject': asdict(subject),
-            'processing_records': [
+            "data_subject": asdict(subject),
+            "processing_records": [
                 {
-                    'id': record.id,
-                    'timestamp': record.timestamp.isoformat(),
-                    'purpose': record.purpose.value,
-                    'legal_basis': record.legal_basis.value,
-                    'classification': record.data_classification.value,
-                    'retention_period_days': record.retention_period_days,
-                    'processing_location': record.processing_location,
-                    'metadata': record.metadata
+                    "id": record.id,
+                    "timestamp": record.timestamp.isoformat(),
+                    "purpose": record.purpose.value,
+                    "legal_basis": record.legal_basis.value,
+                    "classification": record.data_classification.value,
+                    "retention_period_days": record.retention_period_days,
+                    "processing_location": record.processing_location,
+                    "metadata": record.metadata,
                 }
                 for record in records
             ],
-            'export_date': datetime.now().isoformat(),
-            'export_version': '1.0'
+            "export_date": datetime.now().isoformat(),
+            "export_version": "1.0",
         }
 
         return export_data
@@ -391,27 +424,37 @@ class CrossBorderDataTransfer:
         """Initialize cross-border transfer manager."""
         # EU adequacy decisions (simplified list)
         self.adequate_countries = {
-            'AD', 'AR', 'CA', 'FO', 'GG', 'IL', 'IM', 'JE', 'JP', 'NZ', 'CH', 'UY', 'GB'
+            "AD",
+            "AR",
+            "CA",
+            "FO",
+            "GG",
+            "IL",
+            "IM",
+            "JE",
+            "JP",
+            "NZ",
+            "CH",
+            "UY",
+            "GB",
         }
 
         # High privacy risk countries
-        self.restricted_countries = {
-            'CN', 'RU', 'IR', 'KP'
-        }
+        self.restricted_countries = {"CN", "RU", "IR", "KP"}
 
     def assess_transfer_risk(
         self,
         source_country: str,
         destination_country: str,
-        data_classification: DataClassification
+        data_classification: DataClassification,
     ) -> dict[str, Any]:
         """Assess risk of cross-border data transfer.
-        
+
         Args:
             source_country: Source country code
             destination_country: Destination country code
             data_classification: Classification of data being transferred
-            
+
         Returns:
             Risk assessment dictionary
         """
@@ -432,17 +475,20 @@ class CrossBorderDataTransfer:
             warnings.append(f"Transfer to {destination_country} may be prohibited")
 
         # Classification-based requirements
-        if data_classification in [DataClassification.CONFIDENTIAL, DataClassification.RESTRICTED]:
+        if data_classification in [
+            DataClassification.CONFIDENTIAL,
+            DataClassification.RESTRICTED,
+        ]:
             risk_level = "high" if risk_level != "high" else risk_level
             requirements.append("Enhanced encryption required")
             requirements.append("Regular audits required")
 
         return {
-            'risk_level': risk_level,
-            'requirements': requirements,
-            'warnings': warnings,
-            'adequate_destination': destination_country in self.adequate_countries,
-            'restricted_destination': destination_country in self.restricted_countries
+            "risk_level": risk_level,
+            "requirements": requirements,
+            "warnings": warnings,
+            "adequate_destination": destination_country in self.adequate_countries,
+            "restricted_destination": destination_country in self.restricted_countries,
         }
 
     def validate_transfer(
@@ -451,17 +497,17 @@ class CrossBorderDataTransfer:
         destination_country: str,
         data_classification: DataClassification,
         has_sccs: bool = False,
-        has_adequacy: bool = False
+        has_adequacy: bool = False,
     ) -> bool:
         """Validate if a transfer is compliant.
-        
+
         Args:
             source_country: Source country code
             destination_country: Destination country code
             data_classification: Classification of data
             has_sccs: Whether SCCs are in place
             has_adequacy: Whether adequacy decision exists
-            
+
         Returns:
             True if transfer is compliant
         """
@@ -471,7 +517,10 @@ class CrossBorderDataTransfer:
 
         # Restricted countries
         if destination_country in self.restricted_countries:
-            if data_classification in [DataClassification.CONFIDENTIAL, DataClassification.RESTRICTED]:
+            if data_classification in [
+                DataClassification.CONFIDENTIAL,
+                DataClassification.RESTRICTED,
+            ]:
                 return False  # Generally prohibited
 
         # Other countries need SCCs
@@ -487,7 +536,7 @@ _compliance_manager: ComplianceManager | None = None
 
 def get_compliance_manager() -> ComplianceManager:
     """Get global compliance manager.
-    
+
     Returns:
         ComplianceManager instance
     """
@@ -502,17 +551,17 @@ def record_data_processing(
     data_content: str,
     purpose: ProcessingPurpose,
     legal_basis: LegalBasis = LegalBasis.LEGITIMATE_INTERESTS,
-    classification: DataClassification = DataClassification.INTERNAL
+    classification: DataClassification = DataClassification.INTERNAL,
 ) -> ProcessingRecord:
     """Record data processing activity.
-    
+
     Args:
         data_subject_id: ID of the data subject
         data_content: Content being processed
         purpose: Purpose of processing
         legal_basis: Legal basis for processing
         classification: Data classification
-        
+
     Returns:
         ProcessingRecord instance
     """
@@ -522,5 +571,5 @@ def record_data_processing(
         data_content=data_content,
         purpose=purpose,
         legal_basis=legal_basis,
-        classification=classification
+        classification=classification,
     )

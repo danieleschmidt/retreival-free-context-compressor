@@ -16,33 +16,29 @@ from .exceptions import CacheError
 logger = logging.getLogger(__name__)
 
 
-def create_cache_key(
-    text: str,
-    model_name: str,
-    parameters: dict[str, Any]
-) -> str:
+def create_cache_key(text: str, model_name: str, parameters: dict[str, Any]) -> str:
     """Create a unique cache key for compression request.
-    
+
     Args:
         text: Input text
         model_name: Model name used
         parameters: Compression parameters
-        
+
     Returns:
         Unique cache key string
     """
     # Create a deterministic representation
     key_data = {
-        'text_hash': hashlib.sha256(text.encode('utf-8')).hexdigest(),
-        'model': model_name,
-        'params': parameters
+        "text_hash": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "model": model_name,
+        "params": parameters,
     }
 
     # Sort parameters for consistency
     sorted_key = json.dumps(key_data, sort_keys=True, default=str)
 
     # Create final hash
-    return hashlib.md5(sorted_key.encode('utf-8')).hexdigest()
+    return hashlib.md5(sorted_key.encode("utf-8")).hexdigest()
 
 
 class MemoryCache:
@@ -50,7 +46,7 @@ class MemoryCache:
 
     def __init__(self, max_size: int = 100, ttl: int = 3600):
         """Initialize memory cache.
-        
+
         Args:
             max_size: Maximum number of items to cache
             ttl: Time-to-live in seconds
@@ -63,10 +59,10 @@ class MemoryCache:
 
     def get(self, key: str) -> Any | None:
         """Get item from cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached value or None if not found/expired
         """
@@ -89,7 +85,7 @@ class MemoryCache:
 
     def put(self, key: str, value: Any, ttl: int | None = None) -> None:
         """Put item in cache.
-        
+
         Args:
             key: Cache key
             value: Value to cache
@@ -115,10 +111,10 @@ class MemoryCache:
 
     def remove(self, key: str) -> bool:
         """Remove item from cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             True if item was removed, False if not found
         """
@@ -139,15 +135,12 @@ class MemoryCache:
 
     def cleanup_expired(self) -> int:
         """Remove expired items.
-        
+
         Returns:
             Number of items removed
         """
         with self._lock:
-            expired_keys = [
-                key for key in self._cache.keys()
-                if self._is_expired(key)
-            ]
+            expired_keys = [key for key in self._cache.keys() if self._is_expired(key)]
 
             for key in expired_keys:
                 self._remove(key)
@@ -159,22 +152,25 @@ class MemoryCache:
 
     def get_stats(self) -> dict[str, Any]:
         """Get cache statistics.
-        
+
         Returns:
             Dictionary with cache statistics
         """
         with self._lock:
             current_time = time.time()
             expired_count = sum(
-                1 for timestamp in self._timestamps.values()
+                1
+                for timestamp in self._timestamps.values()
                 if timestamp <= current_time
             )
 
             return {
-                'size': len(self._cache),
-                'max_size': self.max_size,
-                'expired_items': expired_count,
-                'utilization': len(self._cache) / self.max_size if self.max_size > 0 else 0
+                "size": len(self._cache),
+                "max_size": self.max_size,
+                "expired_items": expired_count,
+                "utilization": (
+                    len(self._cache) / self.max_size if self.max_size > 0 else 0
+                ),
             }
 
     def _remove(self, key: str) -> bool:
@@ -196,7 +192,7 @@ class DiskCache:
 
     def __init__(self, cache_dir: str | Path, max_size_mb: int = 1024):
         """Initialize disk cache.
-        
+
         Args:
             cache_dir: Directory to store cache files
             max_size_mb: Maximum cache size in MB
@@ -213,10 +209,10 @@ class DiskCache:
 
     def get(self, key: str) -> Any | None:
         """Get item from disk cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached value or None if not found/expired
         """
@@ -230,18 +226,18 @@ class DiskCache:
                 # Load metadata to check expiration
                 metadata = self._load_metadata()
                 if key in metadata:
-                    ttl = metadata[key].get('ttl', 0)
+                    ttl = metadata[key].get("ttl", 0)
                     if time.time() > ttl:
                         # Expired
                         self.remove(key)
                         return None
 
                 # Load from disk
-                with open(cache_file, 'rb') as f:
+                with open(cache_file, "rb") as f:
                     value = pickle.load(f)
 
                 # Update access time
-                metadata[key]['last_accessed'] = time.time()
+                metadata[key]["last_accessed"] = time.time()
                 self._save_metadata(metadata)
 
                 logger.debug(f"Disk cache hit for key: {key[:8]}...")
@@ -255,7 +251,7 @@ class DiskCache:
 
     def put(self, key: str, value: Any, ttl: int = 3600) -> None:
         """Put item in disk cache.
-        
+
         Args:
             key: Cache key
             value: Value to cache
@@ -269,15 +265,15 @@ class DiskCache:
                 cache_file = self.cache_dir / f"{key}.pkl"
 
                 # Save to disk
-                with open(cache_file, 'wb') as f:
+                with open(cache_file, "wb") as f:
                     pickle.dump(value, f)
 
                 # Update metadata
                 metadata = self._load_metadata()
                 metadata[key] = {
-                    'ttl': time.time() + ttl,
-                    'last_accessed': time.time(),
-                    'size_bytes': cache_file.stat().st_size
+                    "ttl": time.time() + ttl,
+                    "last_accessed": time.time(),
+                    "size_bytes": cache_file.stat().st_size,
                 }
                 self._save_metadata(metadata)
 
@@ -289,10 +285,10 @@ class DiskCache:
 
     def remove(self, key: str) -> bool:
         """Remove item from disk cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             True if item was removed, False if not found
         """
@@ -340,14 +336,11 @@ class DiskCache:
         """Get current cache size in bytes."""
         with self._lock:
             metadata = self._load_metadata()
-            return sum(
-                item.get('size_bytes', 0)
-                for item in metadata.values()
-            )
+            return sum(item.get("size_bytes", 0) for item in metadata.values())
 
     def cleanup_expired(self) -> int:
         """Remove expired items.
-        
+
         Returns:
             Number of items removed
         """
@@ -356,8 +349,9 @@ class DiskCache:
             current_time = time.time()
 
             expired_keys = [
-                key for key, meta in metadata.items()
-                if meta.get('ttl', 0) <= current_time
+                key
+                for key, meta in metadata.items()
+                if meta.get("ttl", 0) <= current_time
             ]
 
             for key in expired_keys:
@@ -373,11 +367,15 @@ class DiskCache:
         with self._lock:
             size_bytes = self.size_bytes()
             return {
-                'size': self.size(),
-                'size_bytes': size_bytes,
-                'size_mb': size_bytes / 1024 / 1024,
-                'max_size_mb': self.max_size_mb,
-                'utilization': (size_bytes / 1024 / 1024) / self.max_size_mb if self.max_size_mb > 0 else 0
+                "size": self.size(),
+                "size_bytes": size_bytes,
+                "size_mb": size_bytes / 1024 / 1024,
+                "max_size_mb": self.max_size_mb,
+                "utilization": (
+                    (size_bytes / 1024 / 1024) / self.max_size_mb
+                    if self.max_size_mb > 0
+                    else 0
+                ),
             }
 
     def _load_metadata(self) -> dict[str, Any]:
@@ -394,7 +392,7 @@ class DiskCache:
     def _save_metadata(self, metadata: dict[str, Any]) -> None:
         """Save metadata to disk."""
         try:
-            with open(self.metadata_file, 'w') as f:
+            with open(self.metadata_file, "w") as f:
                 json.dump(metadata, f)
         except Exception as e:
             logger.error(f"Failed to save cache metadata: {e}")
@@ -409,8 +407,7 @@ class DiskCache:
 
             # Sort by last accessed time
             items_by_access = sorted(
-                metadata.items(),
-                key=lambda x: x[1].get('last_accessed', 0)
+                metadata.items(), key=lambda x: x[1].get("last_accessed", 0)
             )
 
             # Remove items until under limit
@@ -424,7 +421,9 @@ class DiskCache:
                     current_size_mb = self.size_bytes() / 1024 / 1024
 
             if removed_count > 0:
-                logger.debug(f"Cleaned up {removed_count} items to free disk cache space")
+                logger.debug(
+                    f"Cleaned up {removed_count} items to free disk cache space"
+                )
 
 
 class TieredCache:
@@ -434,10 +433,10 @@ class TieredCache:
         self,
         memory_cache: MemoryCache | None = None,
         disk_cache: DiskCache | None = None,
-        cache_dir: str | Path | None = None
+        cache_dir: str | Path | None = None,
     ):
         """Initialize tiered cache.
-        
+
         Args:
             memory_cache: Optional memory cache instance
             disk_cache: Optional disk cache instance
@@ -452,15 +451,16 @@ class TieredCache:
         else:
             # Default cache directory
             import tempfile
+
             cache_dir = Path(tempfile.gettempdir()) / "retrieval_free_cache"
             self.disk_cache = DiskCache(cache_dir)
 
     def get(self, key: str) -> Any | None:
         """Get item from cache, checking memory first then disk.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached value or None if not found
         """
@@ -480,7 +480,7 @@ class TieredCache:
 
     def put(self, key: str, value: Any, ttl: int = 3600) -> None:
         """Put item in both cache layers.
-        
+
         Args:
             key: Cache key
             value: Value to cache
@@ -492,10 +492,10 @@ class TieredCache:
 
     def remove(self, key: str) -> bool:
         """Remove item from both cache layers.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             True if item was removed from at least one layer
         """
@@ -510,7 +510,7 @@ class TieredCache:
 
     def cleanup_expired(self) -> tuple[int, int]:
         """Clean up expired items in both layers.
-        
+
         Returns:
             Tuple of (memory_cleaned, disk_cleaned) counts
         """
@@ -521,8 +521,8 @@ class TieredCache:
     def get_stats(self) -> dict[str, Any]:
         """Get statistics for both cache layers."""
         return {
-            'memory': self.memory_cache.get_stats(),
-            'disk': self.disk_cache.get_stats()
+            "memory": self.memory_cache.get_stats(),
+            "disk": self.disk_cache.get_stats(),
         }
 
 

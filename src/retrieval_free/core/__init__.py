@@ -1,4 +1,3 @@
-```python
 """Core compression modules."""
 
 from .auto_compressor import AutoCompressor
@@ -13,4 +12,3 @@ __all__ = [
     "ContextCompressor",
     "AutoCompressor",
 ]
-```

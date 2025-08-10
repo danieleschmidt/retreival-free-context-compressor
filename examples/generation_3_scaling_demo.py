@@ -20,6 +20,11 @@ import logging
 import time
 from typing import List, Dict, Any
 import json
+import sys
+import os
+
+# Add src to path for import
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src'))
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

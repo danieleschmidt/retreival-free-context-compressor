@@ -62,7 +62,7 @@ class Span:
             "timestamp": time.time(),
             "level": level,
             "message": message,
-            **fields
+            **fields,
         }
         self.logs.append(log_entry)
 
@@ -179,7 +179,7 @@ class DistributedTracer:
 
     def __init__(self, service_name: str = "retrieval-free-compressor"):
         """Initialize distributed tracer.
-        
+
         Args:
             service_name: Name of the service
         """
@@ -194,10 +194,10 @@ class DistributedTracer:
 
     def create_trace(self, operation_name: str) -> str:
         """Create a new trace.
-        
+
         Args:
             operation_name: Name of the root operation
-            
+
         Returns:
             Trace ID
         """
@@ -206,8 +206,9 @@ class DistributedTracer:
         with self._lock:
             # Clean up old traces if we have too many
             if len(self.traces) >= self.max_traces:
-                oldest_trace_id = min(self.traces.keys(),
-                                    key=lambda tid: self.traces[tid].start_time)
+                oldest_trace_id = min(
+                    self.traces.keys(), key=lambda tid: self.traces[tid].start_time
+                )
                 del self.traces[oldest_trace_id]
 
             trace = Trace(trace_id=trace_id)
@@ -223,15 +224,15 @@ class DistributedTracer:
         self,
         operation_name: str,
         trace_id: str | None = None,
-        parent_span_id: str | None = None
+        parent_span_id: str | None = None,
     ) -> Span:
         """Create a new span.
-        
+
         Args:
             operation_name: Name of the operation
             trace_id: Trace ID (creates new trace if not provided)
             parent_span_id: Parent span ID
-            
+
         Returns:
             Created span
         """
@@ -241,7 +242,7 @@ class DistributedTracer:
                 span_id="disabled",
                 parent_span_id=parent_span_id,
                 operation_name=operation_name,
-                start_time=time.time()
+                start_time=time.time(),
             )
 
         if trace_id is None:
@@ -254,7 +255,7 @@ class DistributedTracer:
             span_id=span_id,
             parent_span_id=parent_span_id,
             operation_name=operation_name,
-            start_time=time.time()
+            start_time=time.time(),
         )
 
         # Add service tags
@@ -284,8 +285,10 @@ class DistributedTracer:
         with self._lock:
             # Remove from active spans if it's the current one
             thread_id = threading.current_thread().ident
-            if (thread_id in self.active_spans and
-                self.active_spans[thread_id].span_id == span.span_id):
+            if (
+                thread_id in self.active_spans
+                and self.active_spans[thread_id].span_id == span.span_id
+            ):
                 del self.active_spans[thread_id]
 
     def get_trace(self, trace_id: str) -> Trace | None:
@@ -303,7 +306,7 @@ class DistributedTracer:
                         "start_time": trace.start_time,
                         "end_time": trace.end_time,
                         "duration_ms": trace.duration_ms,
-                        "spans": [asdict(span) for span in trace.spans]
+                        "spans": [asdict(span) for span in trace.spans],
                     }
                     traces_data.append(trace_data)
 
@@ -338,7 +341,7 @@ class EnhancedMetricsCollector:
 
     def __init__(self, max_history: int = 10000):
         """Initialize enhanced metrics collector.
-        
+
         Args:
             max_history: Maximum number of metrics to keep in memory
         """
@@ -360,9 +363,9 @@ class EnhancedMetricsCollector:
 
         # SLA thresholds
         self.sla_thresholds = {
-            'compression_time_ms': 5000,  # 5 second max
-            'memory_usage_mb': 4096,      # 4GB max
-            'error_rate_percent': 1.0     # 1% max error rate
+            "compression_time_ms": 5000,  # 5 second max
+            "memory_usage_mb": 4096,  # 4GB max
+            "error_rate_percent": 1.0,  # 1% max error rate
         }
 
         logger.info("Enhanced metrics collector initialized")
@@ -378,13 +381,13 @@ class EnhancedMetricsCollector:
         span_id: str | None = None,
         user_id: str | None = None,
         operation: str = "compress",
-        success: bool = True
+        success: bool = True,
     ) -> None:
         """Record compression operation metrics.
-        
+
         Args:
             input_tokens: Number of input tokens
-            output_tokens: Number of output tokens  
+            output_tokens: Number of output tokens
             processing_time_ms: Processing time in milliseconds
             memory_usage_mb: Memory usage in MB
             model_name: Name of model used
@@ -397,7 +400,11 @@ class EnhancedMetricsCollector:
         with self._lock:
             # Calculate derived metrics
             compression_ratio = input_tokens / output_tokens if output_tokens > 0 else 0
-            throughput_tps = input_tokens / (processing_time_ms / 1000) if processing_time_ms > 0 else 0
+            throughput_tps = (
+                input_tokens / (processing_time_ms / 1000)
+                if processing_time_ms > 0
+                else 0
+            )
 
             # Get GPU memory if available
             gpu_memory_mb = 0
@@ -420,37 +427,37 @@ class EnhancedMetricsCollector:
                 span_id=span_id,
                 user_id=user_id,
                 model_name=model_name,
-                operation=operation
+                operation=operation,
             )
 
             self.metrics_history.append(metrics)
 
             # Update counters
-            self.counters['total_compressions'] += 1
-            self.counters[f'compressions_{model_name}'] += 1
-            self.counters['total_input_tokens'] += input_tokens
-            self.counters['total_output_tokens'] += output_tokens
+            self.counters["total_compressions"] += 1
+            self.counters[f"compressions_{model_name}"] += 1
+            self.counters["total_input_tokens"] += input_tokens
+            self.counters["total_output_tokens"] += output_tokens
 
             if success:
-                self.counters['successful_compressions'] += 1
+                self.counters["successful_compressions"] += 1
             else:
-                self.counters['failed_compressions'] += 1
+                self.counters["failed_compressions"] += 1
                 self.error_counts[operation] += 1
 
                 # Track error rate
                 self.error_rates[operation].append(time.time())
 
             # Update gauges
-            self.gauges['last_compression_ratio'] = compression_ratio
-            self.gauges['last_processing_time_ms'] = processing_time_ms
-            self.gauges['last_throughput_tps'] = throughput_tps
-            self.gauges['last_memory_usage_mb'] = memory_usage_mb
-            self.gauges['last_gpu_memory_mb'] = gpu_memory_mb
+            self.gauges["last_compression_ratio"] = compression_ratio
+            self.gauges["last_processing_time_ms"] = processing_time_ms
+            self.gauges["last_throughput_tps"] = throughput_tps
+            self.gauges["last_memory_usage_mb"] = memory_usage_mb
+            self.gauges["last_gpu_memory_mb"] = gpu_memory_mb
 
             # Update timers and histograms
-            self.timers['processing_time_ms'].append(processing_time_ms)
-            self.timers['compression_ratio'].append(compression_ratio)
-            self.histograms[f'{operation}_response_time'].append(processing_time_ms)
+            self.timers["processing_time_ms"].append(processing_time_ms)
+            self.timers["compression_ratio"].append(compression_ratio)
+            self.histograms[f"{operation}_response_time"].append(processing_time_ms)
             self.response_times[operation].append(processing_time_ms)
 
             # Check SLA violations
@@ -460,25 +467,29 @@ class EnhancedMetricsCollector:
             max_timer_history = 1000
             for timer_name in self.timers:
                 if len(self.timers[timer_name]) > max_timer_history:
-                    self.timers[timer_name] = self.timers[timer_name][-max_timer_history:]
+                    self.timers[timer_name] = self.timers[timer_name][
+                        -max_timer_history:
+                    ]
 
-    def _check_sla_violations(self, operation: str, processing_time_ms: float, memory_usage_mb: float) -> None:
+    def _check_sla_violations(
+        self, operation: str, processing_time_ms: float, memory_usage_mb: float
+    ) -> None:
         """Check for SLA violations."""
-        if processing_time_ms > self.sla_thresholds['compression_time_ms']:
-            self.sla_violations[f'{operation}_time'] += 1
+        if processing_time_ms > self.sla_thresholds["compression_time_ms"]:
+            self.sla_violations[f"{operation}_time"] += 1
             logger.warning(f"SLA violation: {operation} took {processing_time_ms}ms")
 
-        if memory_usage_mb > self.sla_thresholds['memory_usage_mb']:
-            self.sla_violations[f'{operation}_memory'] += 1
+        if memory_usage_mb > self.sla_thresholds["memory_usage_mb"]:
+            self.sla_violations[f"{operation}_memory"] += 1
             logger.warning(f"SLA violation: {operation} used {memory_usage_mb}MB")
 
     def get_error_rate(self, operation: str, window_minutes: int = 5) -> float:
         """Get error rate for an operation.
-        
+
         Args:
             operation: Operation name
             window_minutes: Time window in minutes
-            
+
         Returns:
             Error rate as percentage
         """
@@ -487,12 +498,18 @@ class EnhancedMetricsCollector:
                 return 0.0
 
             cutoff_time = time.time() - (window_minutes * 60)
-            recent_errors = sum(1 for error_time in self.error_rates[operation]
-                              if error_time >= cutoff_time)
+            recent_errors = sum(
+                1
+                for error_time in self.error_rates[operation]
+                if error_time >= cutoff_time
+            )
 
             # Get total operations in the same window
-            recent_metrics = [m for m in self.metrics_history
-                            if m.timestamp >= cutoff_time and m.operation == operation]
+            recent_metrics = [
+                m
+                for m in self.metrics_history
+                if m.timestamp >= cutoff_time and m.operation == operation
+            ]
             total_operations = len(recent_metrics)
 
             if total_operations == 0:
@@ -500,14 +517,16 @@ class EnhancedMetricsCollector:
 
             return (recent_errors / total_operations) * 100
 
-    def get_percentile(self, metric_name: str, percentile: int, window_minutes: int = 60) -> float:
+    def get_percentile(
+        self, metric_name: str, percentile: int, window_minutes: int = 60
+    ) -> float:
         """Get percentile for a metric.
-        
+
         Args:
             metric_name: Name of the metric
             percentile: Percentile to calculate (0-100)
             window_minutes: Time window in minutes
-            
+
         Returns:
             Percentile value
         """
@@ -523,7 +542,7 @@ class EnhancedMetricsCollector:
                 return 0.0
 
             # Filter by time window if needed
-            if window_minutes and hasattr(self, 'metrics_history'):
+            if window_minutes and hasattr(self, "metrics_history"):
                 cutoff_time = time.time() - (window_minutes * 60)
                 # This is a simplified approach - in production, you'd want
                 # to track timestamps for each value
@@ -542,24 +561,30 @@ class EnhancedMetricsCollector:
 
     def get_summary_stats(self, window_minutes: int = 60) -> dict[str, Any]:
         """Get comprehensive summary statistics.
-        
+
         Args:
             window_minutes: Time window for statistics in minutes
-            
+
         Returns:
             Dictionary with summary statistics
         """
         with self._lock:
             cutoff_time = time.time() - (window_minutes * 60)
-            recent_metrics = [m for m in self.metrics_history if m.timestamp >= cutoff_time]
+            recent_metrics = [
+                m for m in self.metrics_history if m.timestamp >= cutoff_time
+            ]
 
             if not recent_metrics:
-                return {'message': 'No recent metrics available'}
+                return {"message": "No recent metrics available"}
 
             # Calculate statistics
-            compression_ratios = [m.compression_ratio for m in recent_metrics if m.compression_ratio > 0]
+            compression_ratios = [
+                m.compression_ratio for m in recent_metrics if m.compression_ratio > 0
+            ]
             processing_times = [m.processing_time_ms for m in recent_metrics]
-            throughputs = [m.throughput_tps for m in recent_metrics if m.throughput_tps > 0]
+            throughputs = [
+                m.throughput_tps for m in recent_metrics if m.throughput_tps > 0
+            ]
             memory_usage = [m.memory_usage_mb for m in recent_metrics]
 
             success_count = sum(m.success_count for m in recent_metrics)
@@ -567,51 +592,75 @@ class EnhancedMetricsCollector:
             total_operations = len(recent_metrics)
 
             return {
-                'window_minutes': window_minutes,
-                'total_operations': total_operations,
-                'success_rate': (success_count / total_operations) * 100 if total_operations > 0 else 0,
-                'error_rate': (error_count / total_operations) * 100 if total_operations > 0 else 0,
-                'compression_ratio': {
-                    'mean': statistics.mean(compression_ratios) if compression_ratios else 0,
-                    'median': statistics.median(compression_ratios) if compression_ratios else 0,
-                    'p95': self.get_percentile('compression_ratio', 95),
-                    'p99': self.get_percentile('compression_ratio', 99),
+                "window_minutes": window_minutes,
+                "total_operations": total_operations,
+                "success_rate": (
+                    (success_count / total_operations) * 100
+                    if total_operations > 0
+                    else 0
+                ),
+                "error_rate": (
+                    (error_count / total_operations) * 100
+                    if total_operations > 0
+                    else 0
+                ),
+                "compression_ratio": {
+                    "mean": (
+                        statistics.mean(compression_ratios) if compression_ratios else 0
+                    ),
+                    "median": (
+                        statistics.median(compression_ratios)
+                        if compression_ratios
+                        else 0
+                    ),
+                    "p95": self.get_percentile("compression_ratio", 95),
+                    "p99": self.get_percentile("compression_ratio", 99),
                 },
-                'processing_time_ms': {
-                    'mean': statistics.mean(processing_times) if processing_times else 0,
-                    'median': statistics.median(processing_times) if processing_times else 0,
-                    'p95': self.get_percentile('processing_time_ms', 95),
-                    'p99': self.get_percentile('processing_time_ms', 99),
+                "processing_time_ms": {
+                    "mean": (
+                        statistics.mean(processing_times) if processing_times else 0
+                    ),
+                    "median": (
+                        statistics.median(processing_times) if processing_times else 0
+                    ),
+                    "p95": self.get_percentile("processing_time_ms", 95),
+                    "p99": self.get_percentile("processing_time_ms", 99),
                 },
-                'throughput_tps': {
-                    'mean': statistics.mean(throughputs) if throughputs else 0,
-                    'median': statistics.median(throughputs) if throughputs else 0,
+                "throughput_tps": {
+                    "mean": statistics.mean(throughputs) if throughputs else 0,
+                    "median": statistics.median(throughputs) if throughputs else 0,
                 },
-                'memory_usage_mb': {
-                    'mean': statistics.mean(memory_usage) if memory_usage else 0,
-                    'max': max(memory_usage) if memory_usage else 0,
+                "memory_usage_mb": {
+                    "mean": statistics.mean(memory_usage) if memory_usage else 0,
+                    "max": max(memory_usage) if memory_usage else 0,
                 },
-                'sla_violations': dict(self.sla_violations),
-                'error_counts_by_operation': dict(self.error_counts)
+                "sla_violations": dict(self.sla_violations),
+                "error_counts_by_operation": dict(self.error_counts),
             }
 
     def export_metrics(self, format: str = "json") -> str:
         """Export metrics in specified format.
-        
+
         Args:
             format: Export format ('json', 'csv', 'prometheus')
-            
+
         Returns:
             Formatted metrics string
         """
         with self._lock:
             if format.lower() == "json":
-                return json.dumps({
-                    'counters': dict(self.counters),
-                    'gauges': dict(self.gauges),
-                    'summary_stats': self.get_summary_stats(),
-                    'recent_metrics': [asdict(m) for m in list(self.metrics_history)[-100:]]
-                }, indent=2, default=str)
+                return json.dumps(
+                    {
+                        "counters": dict(self.counters),
+                        "gauges": dict(self.gauges),
+                        "summary_stats": self.get_summary_stats(),
+                        "recent_metrics": [
+                            asdict(m) for m in list(self.metrics_history)[-100:]
+                        ],
+                    },
+                    indent=2,
+                    default=str,
+                )
 
             elif format.lower() == "prometheus":
                 lines = []
@@ -625,9 +674,9 @@ class EnhancedMetricsCollector:
                     lines.append(f"retrieval_free_{name} {value}")
 
                 # Histograms - basic percentiles
-                for operation in ['compress', 'decompress']:
-                    p95 = self.get_percentile(f'{operation}_response_time', 95)
-                    p99 = self.get_percentile(f'{operation}_response_time', 99)
+                for operation in ["compress", "decompress"]:
+                    p95 = self.get_percentile(f"{operation}_response_time", 95)
+                    p99 = self.get_percentile(f"{operation}_response_time", 99)
                     lines.append(f"retrieval_free_{operation}_response_time_p95 {p95}")
                     lines.append(f"retrieval_free_{operation}_response_time_p99 {p99}")
 
@@ -663,7 +712,7 @@ class AlertManager:
                 operator=">",
                 threshold=10000,  # 10 seconds
                 severity="warning",
-                description="Processing time exceeded normal threshold"
+                description="Processing time exceeded normal threshold",
             ),
             Alert(
                 alert_id="high_error_rate",
@@ -672,7 +721,7 @@ class AlertManager:
                 operator=">",
                 threshold=5.0,
                 severity="critical",
-                description="Error rate exceeded acceptable threshold"
+                description="Error rate exceeded acceptable threshold",
             ),
             Alert(
                 alert_id="high_memory_usage",
@@ -681,7 +730,7 @@ class AlertManager:
                 operator=">",
                 threshold=6144,  # 6GB
                 severity="warning",
-                description="Memory usage exceeded normal threshold"
+                description="Memory usage exceeded normal threshold",
             ),
             Alert(
                 alert_id="low_compression_ratio",
@@ -690,8 +739,8 @@ class AlertManager:
                 operator="<",
                 threshold=2.0,
                 severity="warning",
-                description="Compression ratio below expected threshold"
-            )
+                description="Compression ratio below expected threshold",
+            ),
         ]
 
         for alert in default_alerts:
@@ -699,7 +748,7 @@ class AlertManager:
 
     def register_alert(self, alert: Alert) -> None:
         """Register a new alert.
-        
+
         Args:
             alert: Alert definition
         """
@@ -707,9 +756,11 @@ class AlertManager:
             self.alerts[alert.alert_id] = alert
             logger.info(f"Registered alert: {alert.name}")
 
-    def add_notification_handler(self, handler: Callable[[AlertInstance], None]) -> None:
+    def add_notification_handler(
+        self, handler: Callable[[AlertInstance], None]
+    ) -> None:
         """Add notification handler.
-        
+
         Args:
             handler: Function that handles alert notifications
         """
@@ -717,10 +768,10 @@ class AlertManager:
 
     def check_metrics(self, metrics: dict[str, float]) -> list[AlertInstance]:
         """Check metrics against all alerts.
-        
+
         Args:
             metrics: Dictionary of metric values
-            
+
         Returns:
             List of triggered alerts
         """
@@ -744,7 +795,7 @@ class AlertManager:
                                 value=value,
                                 threshold=alert.threshold,
                                 severity=alert.severity,
-                                fired_at=current_time
+                                fired_at=current_time,
                             )
 
                             self.active_alerts[alert.alert_id] = alert_instance
@@ -778,40 +829,44 @@ class AlertManager:
 
     def get_alert_history(self, hours: int = 24) -> list[AlertInstance]:
         """Get alert history.
-        
+
         Args:
             hours: Number of hours of history to return
-            
+
         Returns:
             List of alert instances
         """
         cutoff_time = datetime.now() - timedelta(hours=hours)
 
         with self._lock:
-            return [alert for alert in self.alert_history
-                   if alert.fired_at >= cutoff_time]
+            return [
+                alert for alert in self.alert_history if alert.fired_at >= cutoff_time
+            ]
 
 
 def log_alert_handler(alert_instance: AlertInstance) -> None:
     """Default alert handler that logs alerts.
-    
+
     Args:
         alert_instance: Alert instance to log
     """
-    logger_level = logging.WARNING if alert_instance.severity == 'warning' else logging.ERROR
+    logger_level = (
+        logging.WARNING if alert_instance.severity == "warning" else logging.ERROR
+    )
     logger.log(
         logger_level,
         f"ALERT [{alert_instance.severity.upper()}] {alert_instance.alert_name}: "
-        f"{alert_instance.metric_name} = {alert_instance.value} (threshold: {alert_instance.threshold})"
+        f"{alert_instance.metric_name} = {alert_instance.value} (threshold: {alert_instance.threshold})",
     )
 
 
 def trace_operation(operation_name: str):
     """Decorator to trace function execution.
-    
+
     Args:
         operation_name: Name of the operation to trace
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -842,6 +897,7 @@ def trace_operation(operation_name: str):
                     raise
 
         return wrapper
+
     return decorator
 
 
@@ -853,7 +909,7 @@ _alert_manager: AlertManager | None = None
 
 def get_distributed_tracer() -> DistributedTracer:
     """Get global distributed tracer.
-    
+
     Returns:
         DistributedTracer instance
     """
@@ -865,7 +921,7 @@ def get_distributed_tracer() -> DistributedTracer:
 
 def get_enhanced_metrics_collector() -> EnhancedMetricsCollector:
     """Get global enhanced metrics collector.
-    
+
     Returns:
         EnhancedMetricsCollector instance
     """
@@ -877,7 +933,7 @@ def get_enhanced_metrics_collector() -> EnhancedMetricsCollector:
 
 def get_alert_manager() -> AlertManager:
     """Get global alert manager.
-    
+
     Returns:
         AlertManager instance
     """
@@ -891,7 +947,7 @@ def get_alert_manager() -> AlertManager:
 
 def get_monitoring_status() -> dict[str, Any]:
     """Get comprehensive monitoring status.
-    
+
     Returns:
         Status dictionary with all monitoring components
     """
@@ -904,18 +960,22 @@ def get_monitoring_status() -> dict[str, Any]:
             "enabled": tracer.enabled,
             "service_name": tracer.service_name,
             "active_traces": len(tracer.traces),
-            "active_spans": len(tracer.active_spans)
+            "active_spans": len(tracer.active_spans),
         },
         "metrics": metrics_collector.get_summary_stats(),
         "alerts": {
             "active_alerts": len(alert_manager.get_active_alerts()),
             "total_alerts_defined": len(alert_manager.alerts),
-            "alert_history_24h": len(alert_manager.get_alert_history(24))
+            "alert_history_24h": len(alert_manager.get_alert_history(24)),
         },
         "system_health": {
             "memory_usage_mb": psutil.Process().memory_info().rss / 1024 / 1024,
             "cpu_percent": psutil.Process().cpu_percent(),
             "gpu_available": torch.cuda.is_available(),
-            "gpu_memory_mb": torch.cuda.memory_allocated() / 1024 / 1024 if torch.cuda.is_available() else 0
-        }
+            "gpu_memory_mb": (
+                torch.cuda.memory_allocated() / 1024 / 1024
+                if torch.cuda.is_available()
+                else 0
+            ),
+        },
     }

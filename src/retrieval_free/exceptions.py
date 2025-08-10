@@ -15,10 +15,10 @@ class RetrievalFreeError(Exception):
         self,
         message: str,
         details: dict[str, Any] | None = None,
-        error_code: str | None = None
+        error_code: str | None = None,
     ):
         """Initialize base exception.
-        
+
         Args:
             message: Error message
             details: Additional error details
@@ -41,7 +41,7 @@ class RetrievalFreeError(Exception):
             "error_type": self.__class__.__name__,
             "message": self.message,
             "error_code": self.error_code,
-            "details": self.details
+            "details": self.details,
         }
 
 
@@ -52,7 +52,7 @@ class ModelLoadError(RetrievalFreeError):
         self,
         message: str,
         model_name: str | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(message, details, "MODEL_LOAD_ERROR")
         self.model_name = model_name
@@ -68,7 +68,7 @@ class CompressionError(RetrievalFreeError):
         message: str,
         input_length: int | None = None,
         model_name: str | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(message, details, "COMPRESSION_ERROR")
         self.input_length = input_length
@@ -88,7 +88,7 @@ class ValidationError(RetrievalFreeError):
         message: str,
         validation_errors: list[str] | None = None,
         field_name: str | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(message, details, "VALIDATION_ERROR")
         self.validation_errors = validation_errors or []
@@ -108,7 +108,7 @@ class ConfigurationError(RetrievalFreeError):
         message: str,
         config_key: str | None = None,
         config_value: Any | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(message, details, "CONFIG_ERROR")
         self.config_key = config_key
@@ -129,7 +129,7 @@ class ResourceError(RetrievalFreeError):
         resource_type: str | None = None,
         required_amount: str | None = None,
         available_amount: str | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(message, details, "RESOURCE_ERROR")
         self.resource_type = resource_type
@@ -152,7 +152,7 @@ class NetworkError(RetrievalFreeError):
         message: str,
         endpoint: str | None = None,
         status_code: int | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(message, details, "NETWORK_ERROR")
         self.endpoint = endpoint
@@ -172,7 +172,7 @@ class CacheError(RetrievalFreeError):
         message: str,
         cache_key: str | None = None,
         cache_operation: str | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(message, details, "CACHE_ERROR")
         self.cache_key = cache_key
@@ -192,7 +192,7 @@ class PluginError(RetrievalFreeError):
         message: str,
         plugin_name: str | None = None,
         plugin_version: str | None = None,
-        details: dict[str, Any] | None = None
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(message, details, "PLUGIN_ERROR")
         self.plugin_name = plugin_name
@@ -206,6 +206,7 @@ class PluginError(RetrievalFreeError):
 
 def handle_exception(func):
     """Decorator to handle and convert exceptions to our custom types."""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
@@ -216,37 +217,39 @@ def handle_exception(func):
         except ImportError as e:
             raise ModelLoadError(
                 f"Failed to import required dependency: {str(e)}",
-                details={"original_error": str(e), "error_type": "ImportError"}
+                details={"original_error": str(e), "error_type": "ImportError"},
             ) from e
         except FileNotFoundError as e:
             raise ModelLoadError(
                 f"Model file not found: {str(e)}",
-                details={"original_error": str(e), "error_type": "FileNotFoundError"}
+                details={"original_error": str(e), "error_type": "FileNotFoundError"},
             ) from e
         except MemoryError as e:
             raise ResourceError(
                 f"Insufficient memory: {str(e)}",
                 resource_type="memory",
-                details={"original_error": str(e), "error_type": "MemoryError"}
+                details={"original_error": str(e), "error_type": "MemoryError"},
             ) from e
         except ValueError as e:
             # Convert ValueError to appropriate custom exception based on context
             if "validation" in str(e).lower():
                 raise ValidationError(
                     f"Input validation failed: {str(e)}",
-                    details={"original_error": str(e), "error_type": "ValueError"}
+                    details={"original_error": str(e), "error_type": "ValueError"},
                 ) from e
             else:
                 raise CompressionError(
                     f"Operation failed: {str(e)}",
-                    details={"original_error": str(e), "error_type": "ValueError"}
+                    details={"original_error": str(e), "error_type": "ValueError"},
                 ) from e
         except Exception as e:
             # Convert other exceptions to generic compression error
-            logger.warning(f"Converting {type(e).__name__} to CompressionError: {str(e)}")
+            logger.warning(
+                f"Converting {type(e).__name__} to CompressionError: {str(e)}"
+            )
             raise CompressionError(
                 f"Unexpected error during operation: {str(e)}",
-                details={"original_error": str(e), "error_type": type(e).__name__}
+                details={"original_error": str(e), "error_type": type(e).__name__},
             ) from e
 
     return wrapper
@@ -254,7 +257,7 @@ def handle_exception(func):
 
 def log_exception(exception: Exception, context: dict[str, Any] | None = None) -> None:
     """Log exception with additional context information.
-    
+
     Args:
         exception: Exception to log
         context: Additional context information
@@ -262,12 +265,14 @@ def log_exception(exception: Exception, context: dict[str, Any] | None = None) -
     context = context or {}
 
     if isinstance(exception, RetrievalFreeError):
-        logger.error(f"RetrievalFreeError: {exception.to_dict()}", extra={"context": context})
+        logger.error(
+            f"RetrievalFreeError: {exception.to_dict()}", extra={"context": context}
+        )
     else:
         logger.error(
             f"{type(exception).__name__}: {str(exception)}",
             extra={"context": context},
-            exc_info=True
+            exc_info=True,
         )
 
 
@@ -286,15 +291,15 @@ EXCEPTION_REGISTRY = {
 
 def create_exception(error_code: str, message: str, **kwargs) -> RetrievalFreeError:
     """Create an exception by error code.
-    
+
     Args:
         error_code: Error code from EXCEPTION_REGISTRY
         message: Error message
         **kwargs: Additional arguments for the exception
-        
+
     Returns:
         Appropriate exception instance
-        
+
     Raises:
         ValueError: If error_code is not recognized
     """

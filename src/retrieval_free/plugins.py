@@ -7,6 +7,7 @@ from typing import Any
 
 try:
     import torch
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
@@ -15,9 +16,11 @@ except ImportError:
 try:
     from .core import AutoCompressor
     from .core.base import CompressionResult, MegaToken
+
     HAS_CORE = True
 except ImportError:
     HAS_CORE = False
+
     # Mock classes for when dependencies are missing
     class MegaToken:
         def __init__(self, vector, metadata, confidence):
@@ -26,13 +29,22 @@ except ImportError:
             self.confidence = confidence
 
     class CompressionResult:
-        def __init__(self, mega_tokens, original_length, compressed_length, compression_ratio, processing_time, metadata):
+        def __init__(
+            self,
+            mega_tokens,
+            original_length,
+            compressed_length,
+            compression_ratio,
+            processing_time,
+            metadata,
+        ):
             self.mega_tokens = mega_tokens
             self.original_length = original_length
             self.compressed_length = compressed_length
             self.compression_ratio = compression_ratio
             self.processing_time = processing_time
             self.metadata = metadata
+
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +58,10 @@ class CompressorPlugin:
         tokenizer: Any = None,
         compressor: str | Any = "rfcc-base-8x",
         compression_threshold: int = 10000,
-        auto_compress: bool = True
+        auto_compress: bool = True,
     ):
         """Initialize compressor plugin.
-        
+
         Args:
             model: Base transformer model
             tokenizer: Model tokenizer
@@ -71,20 +83,16 @@ class CompressorPlugin:
         logger.info(f"Initialized CompressorPlugin with {compressor}")
 
     def generate(
-        self,
-        input_text: str,
-        context: str = "",
-        max_new_tokens: int = 100,
-        **kwargs
+        self, input_text: str, context: str = "", max_new_tokens: int = 100, **kwargs
     ) -> str:
         """Generate text with automatic compression.
-        
+
         Args:
             input_text: Input text (may be compressed automatically)
             context: Optional context to compress
             max_new_tokens: Maximum tokens to generate
             **kwargs: Additional generation parameters
-            
+
         Returns:
             Generated text
         """
@@ -106,7 +114,9 @@ class CompressorPlugin:
             compression_result = self.compressor.compress(full_input)
 
             # Convert mega-tokens to model input
-            compressed_input = self._mega_tokens_to_input(compression_result.mega_tokens)
+            compressed_input = self._mega_tokens_to_input(
+                compression_result.mega_tokens
+            )
 
             logger.info(
                 f"Compressed {input_length} -> {len(compressed_input)} tokens "
@@ -116,20 +126,18 @@ class CompressorPlugin:
             compressed_input = full_input
 
         # Generate with the model
-        if hasattr(self.model, 'generate') and self.tokenizer:
+        if hasattr(self.model, "generate") and self.tokenizer:
             # Handle transformers models
             inputs = self.tokenizer(
                 compressed_input,
                 return_tensors="pt",
                 truncation=True,
-                max_length=self.model.config.max_position_embeddings
+                max_length=self.model.config.max_position_embeddings,
             )
 
             with torch.no_grad():
                 outputs = self.model.generate(
-                    **inputs,
-                    max_new_tokens=max_new_tokens,
-                    **kwargs
+                    **inputs, max_new_tokens=max_new_tokens, **kwargs
                 )
 
             # Decode output
@@ -148,17 +156,17 @@ class CompressorPlugin:
 
     def _mega_tokens_to_input(self, mega_tokens: list) -> str:
         """Convert mega-tokens to model input format.
-        
+
         Args:
             mega_tokens: List of mega-tokens
-            
+
         Returns:
             Formatted input string
         """
         # Check if mega-tokens have source_text metadata
         parts = []
         for i, token in enumerate(mega_tokens):
-            if hasattr(token, 'metadata') and "source_text" in token.metadata:
+            if hasattr(token, "metadata") and "source_text" in token.metadata:
                 parts.append(token.metadata["source_text"])
             else:
                 # Fallback to segment representation
@@ -175,20 +183,16 @@ class CompressorPlugin:
         return " ".join(parts)
 
     def compress_and_generate(
-        self,
-        context: str,
-        query: str,
-        max_new_tokens: int = 200,
-        **kwargs
+        self, context: str, query: str, max_new_tokens: int = 200, **kwargs
     ) -> dict[str, Any]:
         """Compress context and generate response to query.
-        
+
         Args:
             context: Long context to compress
             query: Query to answer
             max_new_tokens: Maximum tokens to generate
             **kwargs: Additional parameters
-            
+
         Returns:
             Generated response or dict with metrics
         """
@@ -196,7 +200,7 @@ class CompressorPlugin:
         compression_result = self.compressor.compress(context)
 
         # Get relevant mega-tokens for the query
-        if hasattr(self.compressor, 'get_attention_weights'):
+        if hasattr(self.compressor, "get_attention_weights"):
             attention_weights = self.compressor.get_attention_weights(
                 query, compression_result.mega_tokens
             )
@@ -205,7 +209,9 @@ class CompressorPlugin:
             top_k = min(10, len(compression_result.mega_tokens))
             if len(attention_weights) > 0:
                 top_indices = torch.topk(attention_weights, top_k).indices
-                relevant_tokens = [compression_result.mega_tokens[i] for i in top_indices]
+                relevant_tokens = [
+                    compression_result.mega_tokens[i] for i in top_indices
+                ]
             else:
                 relevant_tokens = compression_result.mega_tokens[:top_k]
         else:
@@ -215,7 +221,9 @@ class CompressorPlugin:
         compressed_context = self._mega_tokens_to_input(relevant_tokens)
         full_input = f"Context: {compressed_context}\n\nQuestion: {query}\n\nAnswer:"
 
-        generated_text = self.generate(full_input, max_new_tokens=max_new_tokens, **kwargs)
+        generated_text = self.generate(
+            full_input, max_new_tokens=max_new_tokens, **kwargs
+        )
 
         return {
             "generated_text": generated_text,
@@ -243,7 +251,7 @@ class HuggingFacePlugin(CompressorPlugin):
         prompt: str,
         long_context: str,
         max_new_tokens: int = 200,
-        **generation_kwargs
+        **generation_kwargs,
     ) -> dict[str, Any]:
         """Compress context and generate with detailed metrics."""
         # Compress the context
@@ -257,14 +265,11 @@ class HuggingFacePlugin(CompressorPlugin):
         inputs = self.tokenizer(full_prompt, return_tensors="pt")
 
         outputs = self.model.generate(
-            **inputs,
-            max_new_tokens=max_new_tokens,
-            **generation_kwargs
+            **inputs, max_new_tokens=max_new_tokens, **generation_kwargs
         )
 
         generated_text = self.tokenizer.decode(
-            outputs[0][inputs.input_ids.shape[1]:],
-            skip_special_tokens=True
+            outputs[0][inputs.input_ids.shape[1] :], skip_special_tokens=True
         )
 
         return {
@@ -282,23 +287,19 @@ class LangChainIntegration:
 
     def __init__(self, compressor_name: str = "rfcc-base-8x"):
         """Initialize LangChain integration.
-        
+
         Args:
             compressor_name: Name of compressor to use
         """
         self.compressor = AutoCompressor.from_pretrained(compressor_name)
 
-    def create_compression_chain(
-        self,
-        llm,
-        compression_threshold: int = 10000
-    ):
+    def create_compression_chain(self, llm, compression_threshold: int = 10000):
         """Create a LangChain chain with compression.
-        
+
         Args:
             llm: LangChain LLM instance
             compression_threshold: Token threshold for compression
-            
+
         Returns:
             Compression chain
         """
@@ -317,8 +318,7 @@ class LangChainIntegration:
             """
 
             prompt = PromptTemplate(
-                input_variables=["context", "question"],
-                template=template
+                input_variables=["context", "question"], template=template
             )
 
             # Create chain with custom processing
@@ -340,9 +340,15 @@ class LangChainIntegration:
                             if "source_text" in token.metadata:
                                 confidence = token.confidence
                                 text = token.metadata["source_text"]
-                                compressed_parts.append(f"Section {i+1} (confidence: {confidence:.2f}): {text}")
+                                compressed_parts.append(
+                                    f"Section {i+1} (confidence: {confidence:.2f}): {text}"
+                                )
 
-                        inputs["context"] = "\n\n".join(compressed_parts) if compressed_parts else f"[COMPRESSED: {len(result.mega_tokens)} segments from {result.original_length} tokens]"
+                        inputs["context"] = (
+                            "\n\n".join(compressed_parts)
+                            if compressed_parts
+                            else f"[COMPRESSED: {len(result.mega_tokens)} segments from {result.original_length} tokens]"
+                        )
 
                     return super()._call(inputs)
 
@@ -351,7 +357,9 @@ class LangChainIntegration:
                     # Compress if needed
                     if len(document) > self.threshold:
                         compression_result = self.compressor.compress(document)
-                        compressed_doc = self._format_compressed_context(compression_result)
+                        compressed_doc = self._format_compressed_context(
+                            compression_result
+                        )
 
                         prompt_text = f"""Based on the following compressed document context, answer the question.
 
@@ -368,7 +376,7 @@ Answer:"""
                             "answer": answer,
                             "used_compression": True,
                             "compression_ratio": compression_result.compression_ratio,
-                            "original_length": compression_result.original_length
+                            "original_length": compression_result.original_length,
                         }
                     else:
                         prompt_text = f"""Based on the following document, answer the question.
@@ -385,7 +393,7 @@ Answer:"""
                         return {
                             "answer": answer,
                             "used_compression": False,
-                            "original_length": len(document)
+                            "original_length": len(document),
                         }
 
                 def _format_compressed_context(self, result: CompressionResult) -> str:
@@ -395,7 +403,9 @@ Answer:"""
                         if "source_text" in token.metadata:
                             confidence = token.confidence
                             text = token.metadata["source_text"]
-                            sections.append(f"Section {i+1} (confidence: {confidence:.2f}): {text}")
+                            sections.append(
+                                f"Section {i+1} (confidence: {confidence:.2f}): {text}"
+                            )
 
                     return "\n\n".join(sections)
 
@@ -403,7 +413,7 @@ Answer:"""
                 compressor=self.compressor,
                 threshold=compression_threshold,
                 llm=llm,
-                prompt=prompt
+                prompt=prompt,
             )
 
         except ImportError:
@@ -422,7 +432,7 @@ try:
             self,
             llm: BaseLanguageModel,
             compressor: str = "rfcc-base-8x",
-            compression_threshold: int = 10000
+            compression_threshold: int = 10000,
         ):
             self.llm = llm
             self.compressor = AutoCompressor.from_pretrained(compressor)
@@ -450,7 +460,7 @@ Answer:"""
                     "answer": answer,
                     "used_compression": True,
                     "compression_ratio": compression_result.compression_ratio,
-                    "original_length": compression_result.original_length
+                    "original_length": compression_result.original_length,
                 }
             else:
                 prompt = f"""Based on the following document, answer the question.
@@ -467,7 +477,7 @@ Answer:"""
                 return {
                     "answer": answer,
                     "used_compression": False,
-                    "original_length": len(document)
+                    "original_length": len(document),
                 }
 
         def _format_compressed_context(self, result: CompressionResult) -> str:
@@ -477,7 +487,9 @@ Answer:"""
                 if "source_text" in token.metadata:
                     confidence = token.confidence
                     text = token.metadata["source_text"]
-                    sections.append(f"Section {i+1} (confidence: {confidence:.2f}): {text}")
+                    sections.append(
+                        f"Section {i+1} (confidence: {confidence:.2f}): {text}"
+                    )
 
             return "\n\n".join(sections)
 
@@ -485,7 +497,9 @@ except ImportError:
     # LangChain not available
     class CompressionChain:
         def __init__(self, *args, **kwargs):
-            raise ImportError("LangChain is required for CompressionChain. Install with: pip install langchain")
+            raise ImportError(
+                "LangChain is required for CompressionChain. Install with: pip install langchain"
+            )
 
 
 class OpenAIPlugin:
@@ -495,22 +509,25 @@ class OpenAIPlugin:
         self,
         api_key: str | None = None,
         model: str = "gpt-3.5-turbo",
-        compressor: str = "rfcc-base-8x"
+        compressor: str = "rfcc-base-8x",
     ):
         try:
             import openai
+
             self.client = openai.OpenAI(api_key=api_key)
             self.model = model
             self.compressor = AutoCompressor.from_pretrained(compressor)
         except ImportError:
-            raise ImportError("OpenAI library required. Install with: pip install openai")
+            raise ImportError(
+                "OpenAI library required. Install with: pip install openai"
+            )
 
     def chat_with_compression(
         self,
         messages: list[dict],
         long_context: str = "",
         max_tokens: int = 1000,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """Chat with automatic context compression."""
         # Compress long context if provided
@@ -521,16 +538,13 @@ class OpenAIPlugin:
             # Add compressed context to the conversation
             context_message = {
                 "role": "system",
-                "content": f"Compressed context information: {compressed_text}"
+                "content": f"Compressed context information: {compressed_text}",
             }
             messages = [context_message] + messages
 
         # Make API call
         response = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            max_tokens=max_tokens,
-            **kwargs
+            model=self.model, messages=messages, max_tokens=max_tokens, **kwargs
         )
 
         result = {
@@ -539,11 +553,13 @@ class OpenAIPlugin:
         }
 
         if long_context:
-            result.update({
-                "compression_used": True,
-                "compression_ratio": compression_result.compression_ratio,
-                "original_context_length": compression_result.original_length,
-            })
+            result.update(
+                {
+                    "compression_used": True,
+                    "compression_ratio": compression_result.compression_ratio,
+                    "original_context_length": compression_result.original_length,
+                }
+            )
 
         return result
 
@@ -576,18 +592,28 @@ class CLIInterface:
         # Compress command
         compress_parser = subparsers.add_parser("compress", help="Compress text")
         compress_parser.add_argument("input", help="Input text file or string")
-        compress_parser.add_argument("--model", default="rfcc-base-8x", help="Model to use")
-        compress_parser.add_argument("--ratio", type=float, help="Compression ratio override")
+        compress_parser.add_argument(
+            "--model", default="rfcc-base-8x", help="Model to use"
+        )
+        compress_parser.add_argument(
+            "--ratio", type=float, help="Compression ratio override"
+        )
         compress_parser.add_argument("--output", help="Output file for compressed data")
-        compress_parser.add_argument("--stats", action="store_true", help="Show compression statistics")
+        compress_parser.add_argument(
+            "--stats", action="store_true", help="Show compression statistics"
+        )
 
         # List models command
         list_parser = subparsers.add_parser("list-models", help="List available models")
 
         # Benchmark command
         benchmark_parser = subparsers.add_parser("benchmark", help="Run benchmarks")
-        benchmark_parser.add_argument("--model", default="rfcc-base-8x", help="Model to benchmark")
-        benchmark_parser.add_argument("--dataset", help="Dataset to use for benchmarking")
+        benchmark_parser.add_argument(
+            "--model", default="rfcc-base-8x", help="Model to benchmark"
+        )
+        benchmark_parser.add_argument(
+            "--dataset", help="Dataset to use for benchmarking"
+        )
 
         args = parser.parse_args()
 
@@ -608,7 +634,7 @@ class CLIInterface:
         # Load compressor
         try:
             self.compressor = AutoCompressor.from_pretrained(args.model)
-            if hasattr(args, 'ratio') and args.ratio:
+            if hasattr(args, "ratio") and args.ratio:
                 self.compressor.compression_ratio = args.ratio
         except Exception as e:
             print(f"Error loading compressor: {e}")
@@ -617,7 +643,7 @@ class CLIInterface:
         # Get input text
         try:
             if os.path.isfile(args.input):
-                with open(args.input, encoding='utf-8') as f:
+                with open(args.input, encoding="utf-8") as f:
                     text = f.read()
             else:
                 text = args.input
@@ -631,7 +657,7 @@ class CLIInterface:
             result = self.compressor.compress(text)
 
             # Display results
-            if hasattr(args, 'stats') and args.stats:
+            if hasattr(args, "stats") and args.stats:
                 self._print_stats(result)
             else:
                 print(f"Original tokens: {result.original_length}")
@@ -673,7 +699,7 @@ class CLIInterface:
         print(f"  Compressed length: {result.compressed_length:,} mega-tokens")
         print(f"  Compression ratio: {result.compression_ratio:.1f}×")
         print(f"  Processing time: {result.processing_time:.2f}s")
-        if hasattr(result, 'effective_compression'):
+        if hasattr(result, "effective_compression"):
             print(f"  Effective compression: {result.effective_compression:.1f}×")
         print()
 
@@ -694,13 +720,17 @@ class CLIInterface:
         data = {
             "model_info": {
                 "compression_ratio": result.compression_ratio,
-                "mega_tokens_count": len(result.mega_tokens)
+                "mega_tokens_count": len(result.mega_tokens),
             },
             "mega_tokens": [
                 {
-                    "vector": token.vector.tolist() if hasattr(token.vector, 'tolist') else token.vector,
+                    "vector": (
+                        token.vector.tolist()
+                        if hasattr(token.vector, "tolist")
+                        else token.vector
+                    ),
                     "metadata": token.metadata,
-                    "confidence": token.confidence
+                    "confidence": token.confidence,
                 }
                 for token in result.mega_tokens
             ],
@@ -709,11 +739,11 @@ class CLIInterface:
                 "compressed_length": result.compressed_length,
                 "compression_ratio": result.compression_ratio,
                 "processing_time": result.processing_time,
-                "metadata": result.metadata
-            }
+                "metadata": result.metadata,
+            },
         }
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
 

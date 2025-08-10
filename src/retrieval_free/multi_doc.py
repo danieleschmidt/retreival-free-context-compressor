@@ -11,6 +11,7 @@ from typing import Any
 
 try:
     import torch
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DocumentMeta:
     """Metadata for a document in a multi-document collection."""
+
     doc_id: str
     title: str | None
     source: str | None
@@ -40,20 +42,21 @@ class DocumentMeta:
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
-            'doc_id': self.doc_id,
-            'title': self.title,
-            'source': self.source,
-            'creation_time': self.creation_time,
-            'length': self.length,
-            'doc_type': self.doc_type,
-            'priority': self.priority,
-            'tags': self.tags
+            "doc_id": self.doc_id,
+            "title": self.title,
+            "source": self.source,
+            "creation_time": self.creation_time,
+            "length": self.length,
+            "doc_type": self.doc_type,
+            "priority": self.priority,
+            "tags": self.tags,
         }
 
 
 @dataclass
 class Document:
     """Represents a single document in a collection."""
+
     content: str
     metadata: DocumentMeta
 
@@ -69,12 +72,13 @@ class Document:
 
     def get_hash(self) -> str:
         """Get content hash for caching."""
-        return hashlib.md5(self.content.encode('utf-8')).hexdigest()
+        return hashlib.md5(self.content.encode("utf-8")).hexdigest()
 
 
 @dataclass
 class CompressionStrategy:
     """Strategy for compressing a document collection."""
+
     global_compression_ratio: float
     per_document_ratios: dict[str, float]
     priority_weights: dict[str, float]
@@ -104,10 +108,10 @@ class DocumentCollection:
         source: str | None = None,
         doc_type: str = "text",
         priority: float = 1.0,
-        tags: list[str] | None = None
+        tags: list[str] | None = None,
     ) -> str:
         """Add document to collection.
-        
+
         Args:
             content: Document content
             doc_id: Optional document ID (auto-generated if None)
@@ -116,7 +120,7 @@ class DocumentCollection:
             doc_type: Type of document
             priority: Priority for compression (higher = less compression)
             tags: Document tags
-            
+
         Returns:
             Document ID
         """
@@ -138,7 +142,7 @@ class DocumentCollection:
                 length=len(content),
                 doc_type=doc_type,
                 priority=priority,
-                tags=tags or []
+                tags=tags or [],
             )
 
             # Create document
@@ -167,8 +171,7 @@ class DocumentCollection:
 
                 # Clear similarity cache entries
                 to_remove = [
-                    key for key in self._similarity_cache.keys()
-                    if doc_id in key
+                    key for key in self._similarity_cache.keys() if doc_id in key
                 ]
                 for key in to_remove:
                     del self._similarity_cache[key]
@@ -194,16 +197,14 @@ class DocumentCollection:
         return sum(doc.length for doc in self._documents.values())
 
     def find_similar_documents(
-        self,
-        doc_id: str,
-        threshold: float = 0.8
+        self, doc_id: str, threshold: float = 0.8
     ) -> list[tuple[str, float]]:
         """Find documents similar to given document.
-        
+
         Args:
             doc_id: Reference document ID
             threshold: Similarity threshold (0.0-1.0)
-            
+
         Returns:
             List of (doc_id, similarity_score) tuples
         """
@@ -269,10 +270,10 @@ class MultiDocCompressor(CompressorBase):
         similarity_threshold: float = 0.8,
         enable_deduplication: bool = True,
         enable_cross_doc_compression: bool = True,
-        max_workers: int = 4
+        max_workers: int = 4,
     ):
         """Initialize multi-document compressor.
-        
+
         Args:
             model_name: Name of compression model
             device: Computing device
@@ -299,11 +300,11 @@ class MultiDocCompressor(CompressorBase):
 
         # Statistics
         self._stats = {
-            'documents_processed': 0,
-            'duplicates_found': 0,
-            'similar_groups_merged': 0,
-            'total_processing_time': 0.0,
-            'compression_ratios': []
+            "documents_processed": 0,
+            "duplicates_found": 0,
+            "similar_groups_merged": 0,
+            "total_processing_time": 0.0,
+            "compression_ratios": [],
         }
 
     def load_model(self) -> None:
@@ -318,16 +319,14 @@ class MultiDocCompressor(CompressorBase):
             raise CompressionError(f"Model loading failed: {e}")
 
     def compress_collection(
-        self,
-        documents: DocumentCollection,
-        strategy: CompressionStrategy | None = None
+        self, documents: DocumentCollection, strategy: CompressionStrategy | None = None
     ) -> dict[str, CompressionResult]:
         """Compress a collection of documents.
-        
+
         Args:
             documents: Document collection to compress
             strategy: Optional compression strategy
-            
+
         Returns:
             Dictionary mapping document IDs to compression results
         """
@@ -363,11 +362,11 @@ class MultiDocCompressor(CompressorBase):
 
             # Update statistics
             processing_time = time.time() - start_time
-            self._stats['documents_processed'] += len(results)
-            self._stats['total_processing_time'] += processing_time
-            self._stats['compression_ratios'].extend([
-                result.compression_ratio for result in results.values()
-            ])
+            self._stats["documents_processed"] += len(results)
+            self._stats["total_processing_time"] += processing_time
+            self._stats["compression_ratios"].extend(
+                [result.compression_ratio for result in results.values()]
+            )
 
             logger.info(
                 f"Compressed {len(results)} documents in {processing_time:.2f}s "
@@ -380,19 +379,15 @@ class MultiDocCompressor(CompressorBase):
             logger.error(f"Collection compression failed: {e}")
             raise CompressionError(f"Multi-document compression failed: {e}")
 
-    def compress(
-        self,
-        text: str | list[str],
-        **kwargs
-    ) -> CompressionResult:
+    def compress(self, text: str | list[str], **kwargs) -> CompressionResult:
         """Compress single text or list of texts.
-        
+
         This method adapts the multi-document compression for single-document use.
-        
+
         Args:
             text: Input text or list of texts
             **kwargs: Additional parameters
-            
+
         Returns:
             CompressionResult
         """
@@ -424,7 +419,9 @@ class MultiDocCompressor(CompressorBase):
                 total_compressed += result.compressed_length
                 total_processing_time += result.processing_time
 
-            overall_ratio = total_original / total_compressed if total_compressed > 0 else 1.0
+            overall_ratio = (
+                total_original / total_compressed if total_compressed > 0 else 1.0
+            )
 
             return CompressionResult(
                 mega_tokens=all_mega_tokens,
@@ -433,13 +430,15 @@ class MultiDocCompressor(CompressorBase):
                 compression_ratio=overall_ratio,
                 processing_time=total_processing_time,
                 metadata={
-                    'multi_document': True,
-                    'document_count': len(results),
-                    'individual_results': len(results)
-                }
+                    "multi_document": True,
+                    "document_count": len(results),
+                    "individual_results": len(results),
+                },
             )
 
-    def _create_default_strategy(self, documents: DocumentCollection) -> CompressionStrategy:
+    def _create_default_strategy(
+        self, documents: DocumentCollection
+    ) -> CompressionStrategy:
         """Create default compression strategy for document collection."""
         # Calculate per-document ratios based on priority
         per_doc_ratios = {}
@@ -454,20 +453,18 @@ class MultiDocCompressor(CompressorBase):
             priority_weights={},
             similarity_threshold=self.similarity_threshold,
             deduplication_enabled=self.enable_deduplication,
-            cross_document_compression=self.enable_cross_doc_compression
+            cross_document_compression=self.enable_cross_doc_compression,
         )
 
     def _preprocess_documents(
-        self,
-        documents: DocumentCollection,
-        strategy: CompressionStrategy
+        self, documents: DocumentCollection, strategy: CompressionStrategy
     ) -> DocumentCollection:
         """Preprocess documents (deduplication, etc.).
-        
+
         Args:
             documents: Input document collection
             strategy: Compression strategy
-            
+
         Returns:
             Processed document collection
         """
@@ -483,8 +480,7 @@ class MultiDocCompressor(CompressorBase):
 
             # Find similar documents
             similar = documents.find_similar_documents(
-                doc_id,
-                strategy.similarity_threshold
+                doc_id, strategy.similarity_threshold
             )
 
             if not similar:
@@ -496,7 +492,7 @@ class MultiDocCompressor(CompressorBase):
                     source=document.metadata.source,
                     doc_type=document.metadata.doc_type,
                     priority=document.metadata.priority,
-                    tags=document.metadata.tags
+                    tags=document.metadata.tags,
                 )
             else:
                 # Group similar documents
@@ -518,11 +514,11 @@ class MultiDocCompressor(CompressorBase):
                     source=doc.metadata.source,
                     doc_type=doc.metadata.doc_type,
                     priority=doc.metadata.priority,
-                    tags=doc.metadata.tags
+                    tags=doc.metadata.tags,
                 )
             else:
                 # Merge similar documents
-                self._stats['similar_groups_merged'] += 1
+                self._stats["similar_groups_merged"] += 1
                 merged_doc = self._merge_similar_documents(group_docs)
                 processed.add_document(
                     merged_doc.content,
@@ -531,7 +527,7 @@ class MultiDocCompressor(CompressorBase):
                     source=merged_doc.metadata.source,
                     doc_type=merged_doc.metadata.doc_type,
                     priority=merged_doc.metadata.priority,
-                    tags=merged_doc.metadata.tags
+                    tags=merged_doc.metadata.tags,
                 )
 
         logger.debug(
@@ -543,10 +539,10 @@ class MultiDocCompressor(CompressorBase):
 
     def _merge_similar_documents(self, documents: list[Document]) -> Document:
         """Merge a list of similar documents into one.
-        
+
         Args:
             documents: List of similar documents to merge
-            
+
         Returns:
             Merged document
         """
@@ -573,22 +569,20 @@ class MultiDocCompressor(CompressorBase):
             length=len(combined_content),
             doc_type=base_doc.metadata.doc_type,
             priority=max(doc.metadata.priority for doc in documents),
-            tags=list(set(all_tags))
+            tags=list(set(all_tags)),
         )
 
         return Document(content=combined_content, metadata=merged_metadata)
 
     def _compress_sequential(
-        self,
-        documents: DocumentCollection,
-        strategy: CompressionStrategy
+        self, documents: DocumentCollection, strategy: CompressionStrategy
     ) -> dict[str, CompressionResult]:
         """Compress documents sequentially.
-        
+
         Args:
             documents: Document collection
             strategy: Compression strategy
-            
+
         Returns:
             Dictionary of compression results
         """
@@ -596,13 +590,13 @@ class MultiDocCompressor(CompressorBase):
 
         for doc_id in documents.get_document_ids():
             document = documents.get_document(doc_id)
-            target_ratio = strategy.per_document_ratios.get(doc_id, strategy.global_compression_ratio)
+            target_ratio = strategy.per_document_ratios.get(
+                doc_id, strategy.global_compression_ratio
+            )
 
             # Check cache
             cache_key = create_cache_key(
-                document.content,
-                self.model_name,
-                {'compression_ratio': target_ratio}
+                document.content, self.model_name, {"compression_ratio": target_ratio}
             )
 
             cached_result = self._cache.get(cache_key)
@@ -620,10 +614,10 @@ class MultiDocCompressor(CompressorBase):
                 # Enhance with document metadata
                 enhanced_metadata = {
                     **result.metadata,
-                    'document_id': doc_id,
-                    'document_title': document.metadata.title,
-                    'document_priority': document.metadata.priority,
-                    'multi_document_compression': True
+                    "document_id": doc_id,
+                    "document_title": document.metadata.title,
+                    "document_priority": document.metadata.priority,
+                    "multi_document_compression": True,
                 }
 
                 enhanced_result = CompressionResult(
@@ -632,7 +626,7 @@ class MultiDocCompressor(CompressorBase):
                     compressed_length=result.compressed_length,
                     compression_ratio=result.compression_ratio,
                     processing_time=result.processing_time,
-                    metadata=enhanced_metadata
+                    metadata=enhanced_metadata,
                 )
 
                 results[doc_id] = enhanced_result
@@ -646,16 +640,14 @@ class MultiDocCompressor(CompressorBase):
         return results
 
     def _compress_parallel(
-        self,
-        documents: DocumentCollection,
-        strategy: CompressionStrategy
+        self, documents: DocumentCollection, strategy: CompressionStrategy
     ) -> dict[str, CompressionResult]:
         """Compress documents in parallel.
-        
+
         Args:
             documents: Document collection
             strategy: Compression strategy
-            
+
         Returns:
             Dictionary of compression results
         """
@@ -663,13 +655,13 @@ class MultiDocCompressor(CompressorBase):
 
         def compress_document(doc_id: str) -> tuple[str, CompressionResult]:
             document = documents.get_document(doc_id)
-            target_ratio = strategy.per_document_ratios.get(doc_id, strategy.global_compression_ratio)
+            target_ratio = strategy.per_document_ratios.get(
+                doc_id, strategy.global_compression_ratio
+            )
 
             # Check cache
             cache_key = create_cache_key(
-                document.content,
-                self.model_name,
-                {'compression_ratio': target_ratio}
+                document.content, self.model_name, {"compression_ratio": target_ratio}
             )
 
             cached_result = self._cache.get(cache_key)
@@ -690,10 +682,10 @@ class MultiDocCompressor(CompressorBase):
                 # Enhance with document metadata
                 enhanced_metadata = {
                     **result.metadata,
-                    'document_id': doc_id,
-                    'document_title': document.metadata.title,
-                    'document_priority': document.metadata.priority,
-                    'multi_document_compression': True
+                    "document_id": doc_id,
+                    "document_title": document.metadata.title,
+                    "document_priority": document.metadata.priority,
+                    "multi_document_compression": True,
                 }
 
                 enhanced_result = CompressionResult(
@@ -702,7 +694,7 @@ class MultiDocCompressor(CompressorBase):
                     compressed_length=result.compressed_length,
                     compression_ratio=result.compression_ratio,
                     processing_time=result.processing_time,
-                    metadata=enhanced_metadata
+                    metadata=enhanced_metadata,
                 )
 
                 # Cache result
@@ -736,22 +728,20 @@ class MultiDocCompressor(CompressorBase):
                         compressed_length=0,
                         compression_ratio=1.0,
                         processing_time=0.0,
-                        metadata={'error': str(e), 'document_id': doc_id}
+                        metadata={"error": str(e), "document_id": doc_id},
                     )
 
         return results
 
     def _apply_cross_document_optimization(
-        self,
-        results: dict[str, CompressionResult],
-        strategy: CompressionStrategy
+        self, results: dict[str, CompressionResult], strategy: CompressionStrategy
     ) -> dict[str, CompressionResult]:
         """Apply cross-document compression optimizations.
-        
+
         Args:
             results: Initial compression results
             strategy: Compression strategy
-            
+
         Returns:
             Optimized compression results
         """
@@ -762,18 +752,14 @@ class MultiDocCompressor(CompressorBase):
         logger.debug("Cross-document optimization applied (placeholder)")
         return results
 
-    def decompress(
-        self,
-        mega_tokens: list[MegaToken],
-        **kwargs
-    ) -> str:
+    def decompress(self, mega_tokens: list[MegaToken], **kwargs) -> str:
         """Decompress mega-tokens from multi-document compression."""
         parts = []
 
         current_doc_id = None
         for i, token in enumerate(mega_tokens):
-            doc_id = token.metadata.get('document_id', 'unknown')
-            doc_title = token.metadata.get('document_title', 'Untitled')
+            doc_id = token.metadata.get("document_id", "unknown")
+            doc_title = token.metadata.get("document_title", "Untitled")
 
             if doc_id != current_doc_id:
                 if current_doc_id is not None:
@@ -790,13 +776,14 @@ class MultiDocCompressor(CompressorBase):
         """Get multi-document compression statistics."""
         stats = self._stats.copy()
 
-        if stats['compression_ratios']:
+        if stats["compression_ratios"]:
             import numpy as np
-            stats['compression_ratio_stats'] = {
-                'min': min(stats['compression_ratios']),
-                'max': max(stats['compression_ratios']),
-                'mean': np.mean(stats['compression_ratios']),
-                'std': np.std(stats['compression_ratios'])
+
+            stats["compression_ratio_stats"] = {
+                "min": min(stats["compression_ratios"]),
+                "max": max(stats["compression_ratios"]),
+                "mean": np.mean(stats["compression_ratios"]),
+                "std": np.std(stats["compression_ratios"]),
             }
 
         return stats

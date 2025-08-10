@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CacheStats:
     """Cache statistics and metrics."""
+
     hits: int = 0
     misses: int = 0
     evictions: int = 0
@@ -47,6 +48,7 @@ class CacheStats:
 @dataclass
 class CacheEntry:
     """Represents a cached item with metadata."""
+
     key: str
     value: Any
     ttl: float
@@ -75,13 +77,7 @@ class CacheBackend(ABC):
         pass
 
     @abstractmethod
-    async def set(
-        self,
-        key: str,
-        value: Any,
-        ttl: int = 3600,
-        **kwargs
-    ) -> bool:
+    async def set(self, key: str, value: Any, ttl: int = 3600, **kwargs) -> bool:
         """Set value in cache."""
         pass
 
@@ -117,7 +113,7 @@ class RedisBackend(CacheBackend):
         password: str | None = None,
         prefix: str = "rfcc:",
         compression_threshold: int = 1024,  # Compress values larger than 1KB
-        max_connections: int = 10
+        max_connections: int = 10,
     ):
         self.host = host
         self.port = port
@@ -136,11 +132,12 @@ class RedisBackend(CacheBackend):
         if self._redis is None:
             try:
                 import aioredis
+
                 self._redis = aioredis.from_url(
                     f"redis://{self.host}:{self.port}/{self.db}",
                     password=self.password,
                     max_connections=self.max_connections,
-                    retry_on_timeout=True
+                    retry_on_timeout=True,
                 )
                 await self._redis.ping()
                 logger.info(f"Connected to Redis at {self.host}:{self.port}")
@@ -159,19 +156,19 @@ class RedisBackend(CacheBackend):
             serializable_tokens = []
             for token in value.mega_tokens:
                 token_dict = {
-                    'vector': token.vector.tolist(),
-                    'metadata': token.metadata,
-                    'confidence': token.confidence
+                    "vector": token.vector.tolist(),
+                    "metadata": token.metadata,
+                    "confidence": token.confidence,
                 }
                 serializable_tokens.append(token_dict)
 
             serializable_value = {
-                'mega_tokens': serializable_tokens,
-                'original_length': value.original_length,
-                'compressed_length': value.compressed_length,
-                'compression_ratio': value.compression_ratio,
-                'processing_time': value.processing_time,
-                'metadata': value.metadata
+                "mega_tokens": serializable_tokens,
+                "original_length": value.original_length,
+                "compressed_length": value.compressed_length,
+                "compression_ratio": value.compression_ratio,
+                "processing_time": value.processing_time,
+                "metadata": value.metadata,
             }
         else:
             serializable_value = value
@@ -195,25 +192,25 @@ class RedisBackend(CacheBackend):
         value = pickle.loads(data)
 
         # Reconstruct CompressionResult if needed
-        if isinstance(value, dict) and 'mega_tokens' in value:
+        if isinstance(value, dict) and "mega_tokens" in value:
             # Reconstruct MegaTokens
             mega_tokens = []
-            for token_dict in value['mega_tokens']:
+            for token_dict in value["mega_tokens"]:
                 token = MegaToken(
-                    vector=np.array(token_dict['vector']),
-                    metadata=token_dict['metadata'],
-                    confidence=token_dict['confidence']
+                    vector=np.array(token_dict["vector"]),
+                    metadata=token_dict["metadata"],
+                    confidence=token_dict["confidence"],
                 )
                 mega_tokens.append(token)
 
             # Reconstruct CompressionResult
             value = CompressionResult(
                 mega_tokens=mega_tokens,
-                original_length=value['original_length'],
-                compressed_length=value['compressed_length'],
-                compression_ratio=value['compression_ratio'],
-                processing_time=value['processing_time'],
-                metadata=value['metadata']
+                original_length=value["original_length"],
+                compressed_length=value["compressed_length"],
+                compression_ratio=value["compression_ratio"],
+                processing_time=value["processing_time"],
+                metadata=value["metadata"],
             )
 
         return value
@@ -240,15 +237,15 @@ class RedisBackend(CacheBackend):
                 return None
 
             # Check TTL
-            ttl = float(data.get(b'ttl', 0))
+            ttl = float(data.get(b"ttl", 0))
             if time.time() > ttl:
                 await self.delete(key)
                 self._stats.misses += 1
                 return None
 
             # Deserialize value
-            value_data = data[b'value']
-            compressed = data.get(b'compressed', b'false') == b'true'
+            value_data = data[b"value"]
+            compressed = data.get(b"compressed", b"false") == b"true"
 
             value = self._deserialize_value(value_data, compressed)
 
@@ -256,9 +253,8 @@ class RedisBackend(CacheBackend):
             self._stats.hits += 1
             latency_ms = (time.time() - start_time) * 1000
             self._stats.avg_latency_ms = (
-                (self._stats.avg_latency_ms * (self._stats.hits - 1) + latency_ms) /
-                self._stats.hits
-            )
+                self._stats.avg_latency_ms * (self._stats.hits - 1) + latency_ms
+            ) / self._stats.hits
 
             return value
 
@@ -268,12 +264,7 @@ class RedisBackend(CacheBackend):
             return None
 
     async def set(
-        self,
-        key: str,
-        value: Any,
-        ttl: int = 3600,
-        tier: str = "hot",
-        **kwargs
+        self, key: str, value: Any, ttl: int = 3600, tier: str = "hot", **kwargs
     ) -> bool:
         """Set value in Redis."""
         try:
@@ -293,7 +284,7 @@ class RedisBackend(CacheBackend):
                 "size_bytes": len(value_data),
                 "tier": tier,
                 "compressed": str(compressed).lower(),
-                "value": value_data
+                "value": value_data,
             }
 
             # Store in Redis
@@ -363,7 +354,7 @@ class RedisBackend(CacheBackend):
         try:
             redis = await self._get_redis()
             keys = await redis.keys(f"{self.prefix}{pattern}")
-            return [key.decode().replace(self.prefix, '') for key in keys]
+            return [key.decode().replace(self.prefix, "") for key in keys]
         except Exception as e:
             logger.error(f"Redis pattern search error: {e}")
             return []
@@ -372,11 +363,7 @@ class RedisBackend(CacheBackend):
 class MemcachedBackend(CacheBackend):
     """Memcached cache backend."""
 
-    def __init__(
-        self,
-        servers: list[str] = None,
-        compression_threshold: int = 1024
-    ):
+    def __init__(self, servers: list[str] = None, compression_threshold: int = 1024):
         self.servers = servers or ["localhost:11211"]
         self.compression_threshold = compression_threshold
         self._client = None
@@ -387,9 +374,9 @@ class MemcachedBackend(CacheBackend):
         if self._client is None:
             try:
                 import aiomcache
+
                 self._client = aiomcache.Client(
-                    self.servers[0].split(':')[0],
-                    int(self.servers[0].split(':')[1])
+                    self.servers[0].split(":")[0], int(self.servers[0].split(":")[1])
                 )
                 logger.info(f"Connected to Memcached at {self.servers[0]}")
             except ImportError:
@@ -415,9 +402,8 @@ class MemcachedBackend(CacheBackend):
             self._stats.hits += 1
             latency_ms = (time.time() - start_time) * 1000
             self._stats.avg_latency_ms = (
-                (self._stats.avg_latency_ms * (self._stats.hits - 1) + latency_ms) /
-                self._stats.hits
-            )
+                self._stats.avg_latency_ms * (self._stats.hits - 1) + latency_ms
+            ) / self._stats.hits
 
             return value
 
@@ -480,10 +466,10 @@ class TieredDistributedCache:
         hot_backend: CacheBackend,
         warm_backend: CacheBackend | None = None,
         cold_backend: CacheBackend | None = None,
-        hot_ttl: int = 3600,      # 1 hour
-        warm_ttl: int = 86400,    # 24 hours
-        cold_ttl: int = 604800,   # 7 days
-        promotion_threshold: int = 3  # Access count to promote to hot tier
+        hot_ttl: int = 3600,  # 1 hour
+        warm_ttl: int = 86400,  # 24 hours
+        cold_ttl: int = 604800,  # 7 days
+        promotion_threshold: int = 3,  # Access count to promote to hot tier
     ):
         self.hot_backend = hot_backend
         self.warm_backend = warm_backend
@@ -514,7 +500,9 @@ class TieredDistributedCache:
 
                     if self._access_counts[key] >= self.promotion_threshold:
                         # Promote to hot tier
-                        await self.hot_backend.set(key, value, ttl=self.hot_ttl, tier="hot")
+                        await self.hot_backend.set(
+                            key, value, ttl=self.hot_ttl, tier="hot"
+                        )
                         del self._access_counts[key]
 
                 return value
@@ -529,7 +517,9 @@ class TieredDistributedCache:
 
                     if self._access_counts[key] >= self.promotion_threshold // 2:
                         if self.warm_backend:
-                            await self.warm_backend.set(key, value, ttl=self.warm_ttl, tier="warm")
+                            await self.warm_backend.set(
+                                key, value, ttl=self.warm_ttl, tier="warm"
+                            )
 
                 return value
 
@@ -580,9 +570,7 @@ class TieredDistributedCache:
 
     async def get_stats(self) -> dict[str, CacheStats]:
         """Get statistics for all tiers."""
-        stats = {
-            "hot": await self.hot_backend.get_stats()
-        }
+        stats = {"hot": await self.hot_backend.get_stats()}
 
         if self.warm_backend:
             stats["warm"] = await self.warm_backend.get_stats()
@@ -600,7 +588,7 @@ class CacheWarmer:
         self,
         cache: CacheBackend | TieredDistributedCache,
         compressor: Any,
-        warm_patterns: list[str] = None
+        warm_patterns: list[str] = None,
     ):
         self.cache = cache
         self.compressor = compressor
@@ -635,11 +623,7 @@ class CacheWarmer:
         for text in content:
             try:
                 # Check if already cached
-                cache_key = create_cache_key(
-                    text,
-                    self.compressor.model_name,
-                    {}
-                )
+                cache_key = create_cache_key(text, self.compressor.model_name, {})
 
                 if await self.cache.exists(cache_key):
                     continue
@@ -681,18 +665,17 @@ class CDNIntegration:
         self,
         cdn_endpoint: str,
         api_key: str | None = None,
-        cache_regions: list[str] = None
+        cache_regions: list[str] = None,
     ):
-        self.cdn_endpoint = cdn_endpoint.rstrip('/')
+        self.cdn_endpoint = cdn_endpoint.rstrip("/")
         self.api_key = api_key
-        self.cache_regions = cache_regions or ["us-east-1", "eu-west-1", "ap-southeast-1"]
+        self.cache_regions = cache_regions or [
+            "us-east-1",
+            "eu-west-1",
+            "ap-southeast-1",
+        ]
 
-    async def cache_at_edge(
-        self,
-        key: str,
-        value: Any,
-        ttl: int = 3600
-    ) -> bool:
+    async def cache_at_edge(self, key: str, value: Any, ttl: int = 3600) -> bool:
         """Cache content at CDN edge locations."""
         try:
             # Serialize value for HTTP transport
@@ -703,7 +686,7 @@ class CDNIntegration:
                         {
                             "vector": token.vector.tolist(),
                             "metadata": token.metadata,
-                            "confidence": token.confidence
+                            "confidence": token.confidence,
                         }
                         for token in value.mega_tokens
                     ],
@@ -711,7 +694,7 @@ class CDNIntegration:
                     "compressed_length": value.compressed_length,
                     "compression_ratio": value.compression_ratio,
                     "processing_time": value.processing_time,
-                    "metadata": value.metadata
+                    "metadata": value.metadata,
                 }
             else:
                 data = value
@@ -764,29 +747,31 @@ class DistributedCacheManager:
         redis_config: dict[str, Any] | None = None,
         memcached_config: dict[str, Any] | None = None,
         cdn_config: dict[str, Any] | None = None,
-        enable_warming: bool = True
+        enable_warming: bool = True,
     ):
         # Initialize backends
         self.backends = {}
 
         if redis_config:
-            self.backends['redis'] = RedisBackend(**redis_config)
+            self.backends["redis"] = RedisBackend(**redis_config)
 
         if memcached_config:
-            self.backends['memcached'] = MemcachedBackend(**memcached_config)
+            self.backends["memcached"] = MemcachedBackend(**memcached_config)
 
         # Setup tiered cache
-        hot_backend = self.backends.get('redis') or self.backends.get('memcached')
-        warm_backend = self.backends.get('memcached') if 'redis' in self.backends else None
+        hot_backend = self.backends.get("redis") or self.backends.get("memcached")
+        warm_backend = (
+            self.backends.get("memcached") if "redis" in self.backends else None
+        )
 
         if hot_backend:
             self.cache = TieredDistributedCache(
-                hot_backend=hot_backend,
-                warm_backend=warm_backend
+                hot_backend=hot_backend, warm_backend=warm_backend
             )
         else:
             # Fallback to in-memory cache
             from .caching import TieredCache
+
             self.cache = TieredCache()
 
         # CDN integration
@@ -794,7 +779,7 @@ class DistributedCacheManager:
 
         # Cache warming
         self.warmer = None
-        if enable_warming and hasattr(self.cache, 'hot_backend'):
+        if enable_warming and hasattr(self.cache, "hot_backend"):
             self.warmer = CacheWarmer(self.cache, None)  # Compressor set later
 
     async def get(self, key: str) -> Any | None:
@@ -807,7 +792,7 @@ class DistributedCacheManager:
         value: Any,
         ttl: int = 3600,
         use_cdn: bool = False,
-        tier: str = "hot"
+        tier: str = "hot",
     ) -> bool:
         """Set in distributed cache."""
         # Set in main cache
@@ -832,11 +817,11 @@ class DistributedCacheManager:
     async def get_comprehensive_stats(self) -> dict[str, Any]:
         """Get comprehensive cache statistics."""
         stats = {
-            'timestamp': time.time(),
-            'cache_stats': await self.cache.get_stats(),
-            'backends': list(self.backends.keys()),
-            'cdn_enabled': self.cdn is not None,
-            'warmer_enabled': self.warmer is not None
+            "timestamp": time.time(),
+            "cache_stats": await self.cache.get_stats(),
+            "backends": list(self.backends.keys()),
+            "cdn_enabled": self.cdn is not None,
+            "warmer_enabled": self.warmer is not None,
         }
 
         return stats
@@ -859,7 +844,7 @@ _distributed_cache: DistributedCacheManager | None = None
 def get_distributed_cache(
     redis_config: dict[str, Any] | None = None,
     memcached_config: dict[str, Any] | None = None,
-    cdn_config: dict[str, Any] | None = None
+    cdn_config: dict[str, Any] | None = None,
 ) -> DistributedCacheManager:
     """Get or create distributed cache instance."""
     global _distributed_cache
@@ -868,7 +853,7 @@ def get_distributed_cache(
         _distributed_cache = DistributedCacheManager(
             redis_config=redis_config,
             memcached_config=memcached_config,
-            cdn_config=cdn_config
+            cdn_config=cdn_config,
         )
 
     return _distributed_cache

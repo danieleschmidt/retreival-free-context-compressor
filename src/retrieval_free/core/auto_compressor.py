@@ -13,18 +13,21 @@ from .context_compressor import ContextCompressor
 # Import other compressor types
 try:
     from ..streaming import StreamingCompressor
+
     HAS_STREAMING = True
 except ImportError:
     HAS_STREAMING = False
 
 try:
     from ..selective import SelectiveCompressor
+
     HAS_SELECTIVE = True
 except ImportError:
     HAS_SELECTIVE = False
 
 try:
     from ..multi_doc import MultiDocCompressor
+
     HAS_MULTI_DOC = True
 except ImportError:
     HAS_MULTI_DOC = False
@@ -42,26 +45,26 @@ class ModelRegistry:
             "compression_ratio": 8.0,
             "chunk_size": 512,
             "overlap": 64,
-            "description": "Base 8x compression model for general text"
+            "description": "Base 8x compression model for general text",
         },
         "rfcc-streaming": {
             "class": "StreamingCompressor",
             "compression_ratio": 8.0,
             "window_size": 32000,
-            "description": "Streaming compression for infinite contexts"
+            "description": "Streaming compression for infinite contexts",
         },
         "rfcc-selective": {
             "class": "SelectiveCompressor",
             "compression_ratios": {"legal": 4.0, "general": 8.0, "repetitive": 16.0},
-            "description": "Content-aware selective compression"
+            "description": "Content-aware selective compression",
         },
         "context-compressor-base": {
             "class": "ContextCompressor",
             "compression_ratio": 8.0,
             "chunk_size": 512,
             "overlap": 64,
-            "description": "Default context compressor"
-        }
+            "description": "Default context compressor",
+        },
     }
 
     @classmethod
@@ -75,11 +78,7 @@ class ModelRegistry:
         return cls.MODELS.get(model_name)
 
     @classmethod
-    def register_model(
-        cls,
-        name: str,
-        config: dict[str, Any]
-    ) -> None:
+    def register_model(cls, name: str, config: dict[str, Any]) -> None:
         """Register a new model configuration."""
         cls.MODELS[name] = config
         logger.info(f"Registered model: {name}")
@@ -93,19 +92,19 @@ class AutoCompressor:
         model_name: str,
         device: str | None = None,
         cache_dir: str | None = None,
-        **kwargs
+        **kwargs,
     ) -> CompressorBase:
         """Load a pretrained compressor model.
-        
+
         Args:
             model_name: Name of the model to load
             device: Device to load model on
             cache_dir: Directory to cache models
             **kwargs: Additional model parameters
-            
+
         Returns:
             Initialized compressor instance
-            
+
         Raises:
             ValueError: If model not found
             RuntimeError: If model loading fails
@@ -135,9 +134,7 @@ class AutoCompressor:
         # Create compressor instance
         try:
             compressor = compressor_class(
-                model_name=model_name,
-                device=device,
-                **config
+                model_name=model_name, device=device, **config
             )
 
             # Load the model
@@ -152,13 +149,13 @@ class AutoCompressor:
     @staticmethod
     def _get_compressor_class(class_name: str) -> type:
         """Get compressor class by name.
-        
+
         Args:
             class_name: Name of compressor class
-            
+
         Returns:
             Compressor class
-            
+
         Raises:
             ValueError: If class not found
         """
@@ -190,20 +187,18 @@ class AutoCompressor:
 
     @staticmethod
     def _load_from_path(
-        model_path: str,
-        device: str | None = None,
-        **kwargs
+        model_path: str, device: str | None = None, **kwargs
     ) -> CompressorBase:
         """Load compressor from local path.
-        
+
         Args:
             model_path: Path to model directory
             device: Device to load on
             **kwargs: Additional parameters
-            
+
         Returns:
             Loaded compressor
-            
+
         Raises:
             FileNotFoundError: If config file not found
             ValueError: If invalid configuration
@@ -224,9 +219,7 @@ class AutoCompressor:
 
         # Create compressor
         compressor = compressor_class(
-            model_name=str(model_path),
-            device=device,
-            **{**config, **kwargs}
+            model_name=str(model_path), device=device, **{**config, **kwargs}
         )
 
         compressor.load_model()
@@ -234,12 +227,10 @@ class AutoCompressor:
 
     @staticmethod
     def save_pretrained(
-        compressor: CompressorBase,
-        save_path: str,
-        push_to_hub: bool = False
+        compressor: CompressorBase, save_path: str, push_to_hub: bool = False
     ) -> None:
         """Save compressor to disk.
-        
+
         Args:
             compressor: Compressor to save
             save_path: Directory to save to
@@ -257,18 +248,22 @@ class AutoCompressor:
         }
 
         # Add compressor-specific config
-        if hasattr(compressor, 'chunk_size'):
+        if hasattr(compressor, "chunk_size"):
             config["chunk_size"] = compressor.chunk_size
-        if hasattr(compressor, 'overlap'):
+        if hasattr(compressor, "overlap"):
             config["overlap"] = compressor.overlap
 
         config_path = save_path / "config.json"
-        with open(config_path, 'w') as f:
+        with open(config_path, "w") as f:
             json.dump(config, f, indent=2)
 
         # Save model weights if available
-        if hasattr(compressor, '_hierarchical_encoder') and compressor._hierarchical_encoder:
+        if (
+            hasattr(compressor, "_hierarchical_encoder")
+            and compressor._hierarchical_encoder
+        ):
             import torch
+
             model_path = save_path / "pytorch_model.bin"
             torch.save(compressor._hierarchical_encoder.state_dict(), model_path)
 
@@ -280,7 +275,7 @@ class AutoCompressor:
     @staticmethod
     def list_available_models() -> dict[str, str]:
         """List all available pretrained models.
-        
+
         Returns:
             Dictionary mapping model names to descriptions
         """
@@ -295,16 +290,16 @@ class AutoCompressor:
         compressor_type: str = "context",
         compression_ratio: float = 8.0,
         device: str | None = None,
-        **kwargs
+        **kwargs,
     ) -> CompressorBase:
         """Create a custom compressor with specific parameters.
-        
+
         Args:
             compressor_type: Type of compressor ('context', 'streaming', etc.)
             compression_ratio: Target compression ratio
             device: Device to use
             **kwargs: Additional parameters
-            
+
         Returns:
             Configured compressor instance
         """
@@ -330,7 +325,9 @@ class AutoCompressor:
 
         if compressor_type not in type_map:
             available = list(type_map.keys())
-            raise ValueError(f"Unknown type '{compressor_type}'. Available: {available}")
+            raise ValueError(
+                f"Unknown type '{compressor_type}'. Available: {available}"
+            )
 
         compressor_class = type_map[compressor_type]
 
@@ -338,7 +335,7 @@ class AutoCompressor:
             model_name=f"custom-{compressor_type}",
             device=device,
             compression_ratio=compression_ratio,
-            **kwargs
+            **kwargs,
         )
 
         compressor.load_model()

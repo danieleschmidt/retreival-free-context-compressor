@@ -57,7 +57,7 @@ class Span:
             "timestamp": time.time(),
             "level": level,
             "message": message,
-            **fields
+            **fields,
         }
         self.logs.append(log_entry)
 
@@ -174,7 +174,7 @@ class MetricsCollector:
 
     def __init__(self, max_history: int = 1000):
         """Initialize metrics collector.
-        
+
         Args:
             max_history: Maximum number of metrics to keep in memory
         """
@@ -191,13 +191,13 @@ class MetricsCollector:
         output_tokens: int,
         processing_time_ms: float,
         memory_usage_mb: float = 0,
-        model_name: str = "unknown"
+        model_name: str = "unknown",
     ) -> None:
         """Record compression operation metrics.
-        
+
         Args:
             input_tokens: Number of input tokens
-            output_tokens: Number of output tokens  
+            output_tokens: Number of output tokens
             processing_time_ms: Processing time in milliseconds
             memory_usage_mb: Memory usage in MB
             model_name: Name of model used
@@ -205,7 +205,11 @@ class MetricsCollector:
         with self._lock:
             # Calculate derived metrics
             compression_ratio = input_tokens / output_tokens if output_tokens > 0 else 0
-            throughput_tps = input_tokens / (processing_time_ms / 1000) if processing_time_ms > 0 else 0
+            throughput_tps = (
+                input_tokens / (processing_time_ms / 1000)
+                if processing_time_ms > 0
+                else 0
+            )
 
             # Get GPU memory if available
             gpu_memory_mb = 0
@@ -221,47 +225,51 @@ class MetricsCollector:
                 gpu_memory_mb=gpu_memory_mb,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
-                throughput_tps=throughput_tps
+                throughput_tps=throughput_tps,
             )
 
             self.metrics_history.append(metrics)
 
             # Update counters
-            self.counters['total_compressions'] += 1
-            self.counters[f'compressions_{model_name}'] += 1
-            self.counters['total_input_tokens'] += input_tokens
-            self.counters['total_output_tokens'] += output_tokens
+            self.counters["total_compressions"] += 1
+            self.counters[f"compressions_{model_name}"] += 1
+            self.counters["total_input_tokens"] += input_tokens
+            self.counters["total_output_tokens"] += output_tokens
 
             # Update gauges
-            self.gauges['last_compression_ratio'] = compression_ratio
-            self.gauges['last_processing_time_ms'] = processing_time_ms
-            self.gauges['last_throughput_tps'] = throughput_tps
+            self.gauges["last_compression_ratio"] = compression_ratio
+            self.gauges["last_processing_time_ms"] = processing_time_ms
+            self.gauges["last_throughput_tps"] = throughput_tps
 
             # Update timers
-            self.timers['processing_time_ms'].append(processing_time_ms)
-            self.timers['compression_ratio'].append(compression_ratio)
+            self.timers["processing_time_ms"].append(processing_time_ms)
+            self.timers["compression_ratio"].append(compression_ratio)
 
             # Limit timer history
             max_timer_history = 100
             for timer_name in self.timers:
                 if len(self.timers[timer_name]) > max_timer_history:
-                    self.timers[timer_name] = self.timers[timer_name][-max_timer_history:]
+                    self.timers[timer_name] = self.timers[timer_name][
+                        -max_timer_history:
+                    ]
 
     def get_summary_stats(self, window_minutes: int = 60) -> dict[str, Any]:
         """Get summary statistics for recent operations.
-        
+
         Args:
             window_minutes: Time window for statistics in minutes
-            
+
         Returns:
             Dictionary with summary statistics
         """
         with self._lock:
             cutoff_time = time.time() - (window_minutes * 60)
-            recent_metrics = [m for m in self.metrics_history if m.timestamp >= cutoff_time]
+            recent_metrics = [
+                m for m in self.metrics_history if m.timestamp >= cutoff_time
+            ]
 
             if not recent_metrics:
-                return {'message': 'No recent metrics available'}
+                return {"message": "No recent metrics available"}
 
             # Calculate statistics
             compression_ratios = [m.compression_ratio for m in recent_metrics]
@@ -270,42 +278,46 @@ class MetricsCollector:
             memory_usage = [m.memory_usage_mb for m in recent_metrics]
 
             return {
-                'window_minutes': window_minutes,
-                'total_operations': len(recent_metrics),
-                'compression_ratio': {
-                    'mean': statistics.mean(compression_ratios),
-                    'median': statistics.median(compression_ratios),
-                    'min': min(compression_ratios),
-                    'max': max(compression_ratios),
-                    'stddev': statistics.stdev(compression_ratios) if len(compression_ratios) > 1 else 0
+                "window_minutes": window_minutes,
+                "total_operations": len(recent_metrics),
+                "compression_ratio": {
+                    "mean": statistics.mean(compression_ratios),
+                    "median": statistics.median(compression_ratios),
+                    "min": min(compression_ratios),
+                    "max": max(compression_ratios),
+                    "stddev": (
+                        statistics.stdev(compression_ratios)
+                        if len(compression_ratios) > 1
+                        else 0
+                    ),
                 },
-                'processing_time_ms': {
-                    'mean': statistics.mean(processing_times),
-                    'median': statistics.median(processing_times),
-                    'min': min(processing_times),
-                    'max': max(processing_times),
-                    'p95': self._percentile(processing_times, 95),
-                    'p99': self._percentile(processing_times, 99)
+                "processing_time_ms": {
+                    "mean": statistics.mean(processing_times),
+                    "median": statistics.median(processing_times),
+                    "min": min(processing_times),
+                    "max": max(processing_times),
+                    "p95": self._percentile(processing_times, 95),
+                    "p99": self._percentile(processing_times, 99),
                 },
-                'throughput_tps': {
-                    'mean': statistics.mean(throughputs),
-                    'median': statistics.median(throughputs),
-                    'min': min(throughputs),
-                    'max': max(throughputs)
+                "throughput_tps": {
+                    "mean": statistics.mean(throughputs),
+                    "median": statistics.median(throughputs),
+                    "min": min(throughputs),
+                    "max": max(throughputs),
                 },
-                'memory_usage_mb': {
-                    'mean': statistics.mean(memory_usage),
-                    'max': max(memory_usage)
-                }
+                "memory_usage_mb": {
+                    "mean": statistics.mean(memory_usage),
+                    "max": max(memory_usage),
+                },
             }
 
     def _percentile(self, data: list[float], percentile: int) -> float:
         """Calculate percentile of data.
-        
+
         Args:
             data: List of values
             percentile: Percentile to calculate (0-100)
-            
+
         Returns:
             Percentile value
         """
@@ -324,20 +336,25 @@ class MetricsCollector:
 
     def export_metrics(self, format: str = "json") -> str:
         """Export metrics in specified format.
-        
+
         Args:
             format: Export format ('json', 'csv', 'prometheus')
-            
+
         Returns:
             Formatted metrics string
         """
         with self._lock:
             if format.lower() == "json":
-                return json.dumps({
-                    'counters': dict(self.counters),
-                    'gauges': dict(self.gauges),
-                    'recent_metrics': [asdict(m) for m in list(self.metrics_history)[-10:]]
-                }, indent=2)
+                return json.dumps(
+                    {
+                        "counters": dict(self.counters),
+                        "gauges": dict(self.gauges),
+                        "recent_metrics": [
+                            asdict(m) for m in list(self.metrics_history)[-10:]
+                        ],
+                    },
+                    indent=2,
+                )
 
             elif format.lower() == "prometheus":
                 lines = []
@@ -367,7 +384,7 @@ class HealthChecker:
 
     def register_check(self, name: str, check_func: Callable[[], HealthStatus]) -> None:
         """Register a health check function.
-        
+
         Args:
             name: Name of the health check
             check_func: Function that returns HealthStatus
@@ -378,10 +395,10 @@ class HealthChecker:
 
     def run_check(self, name: str) -> HealthStatus:
         """Run a specific health check.
-        
+
         Args:
             name: Name of health check to run
-            
+
         Returns:
             HealthStatus result
         """
@@ -391,7 +408,7 @@ class HealthChecker:
                 healthy=False,
                 message=f"Health check '{name}' not found",
                 response_time_ms=0,
-                timestamp=time.time()
+                timestamp=time.time(),
             )
 
         start_time = time.time()
@@ -412,7 +429,7 @@ class HealthChecker:
                 healthy=False,
                 message=f"Health check failed: {str(e)}",
                 response_time_ms=(time.time() - start_time) * 1000,
-                timestamp=time.time()
+                timestamp=time.time(),
             )
 
             with self._lock:
@@ -422,7 +439,7 @@ class HealthChecker:
 
     def run_all_checks(self) -> dict[str, HealthStatus]:
         """Run all registered health checks.
-        
+
         Returns:
             Dictionary mapping check names to results
         """
@@ -435,7 +452,7 @@ class HealthChecker:
 
     def get_overall_health(self) -> dict[str, Any]:
         """Get overall system health status.
-        
+
         Returns:
             Overall health summary
         """
@@ -445,25 +462,27 @@ class HealthChecker:
         passing_checks = sum(1 for r in results.values() if r.healthy)
 
         overall_healthy = passing_checks == total_checks
-        health_percentage = (passing_checks / total_checks * 100) if total_checks > 0 else 0
+        health_percentage = (
+            (passing_checks / total_checks * 100) if total_checks > 0 else 0
+        )
 
         return {
-            'healthy': overall_healthy,
-            'health_percentage': health_percentage,
-            'total_checks': total_checks,
-            'passing_checks': passing_checks,
-            'failing_checks': total_checks - passing_checks,
-            'checks': {name: asdict(status) for name, status in results.items()},
-            'timestamp': time.time()
+            "healthy": overall_healthy,
+            "health_percentage": health_percentage,
+            "total_checks": total_checks,
+            "passing_checks": passing_checks,
+            "failing_checks": total_checks - passing_checks,
+            "checks": {name: asdict(status) for name, status in results.items()},
+            "timestamp": time.time(),
         }
 
 
 def create_default_health_checks(compressor) -> HealthChecker:
     """Create default health checks for the compressor.
-    
+
     Args:
         compressor: Compressor instance to monitor
-        
+
     Returns:
         Configured HealthChecker
     """
@@ -473,7 +492,10 @@ def create_default_health_checks(compressor) -> HealthChecker:
     def check_model_availability() -> HealthStatus:
         """Check if compression model is available."""
         try:
-            if hasattr(compressor, '_encoder_model') and compressor._encoder_model is not None:
+            if (
+                hasattr(compressor, "_encoder_model")
+                and compressor._encoder_model is not None
+            ):
                 # Try a simple inference
                 test_result = compressor.compress("Test input for health check")
 
@@ -482,7 +504,7 @@ def create_default_health_checks(compressor) -> HealthChecker:
                     healthy=True,
                     message=f"Model available, compressed to {len(test_result.mega_tokens)} tokens",
                     response_time_ms=0,  # Will be set by health checker
-                    timestamp=0
+                    timestamp=0,
                 )
             else:
                 return HealthStatus(
@@ -490,7 +512,7 @@ def create_default_health_checks(compressor) -> HealthChecker:
                     healthy=False,
                     message="Model not loaded",
                     response_time_ms=0,
-                    timestamp=0
+                    timestamp=0,
                 )
         except Exception as e:
             return HealthStatus(
@@ -498,7 +520,7 @@ def create_default_health_checks(compressor) -> HealthChecker:
                 healthy=False,
                 message=f"Model check failed: {str(e)}",
                 response_time_ms=0,
-                timestamp=0
+                timestamp=0,
             )
 
     # Memory check
@@ -525,10 +547,10 @@ def create_default_health_checks(compressor) -> HealthChecker:
                 response_time_ms=0,
                 timestamp=0,
                 details={
-                    'memory_percent': memory_percent,
-                    'available_gb': memory.available / 1024 / 1024 / 1024,
-                    'total_gb': memory.total / 1024 / 1024 / 1024
-                }
+                    "memory_percent": memory_percent,
+                    "available_gb": memory.available / 1024 / 1024 / 1024,
+                    "total_gb": memory.total / 1024 / 1024 / 1024,
+                },
             )
         except Exception as e:
             return HealthStatus(
@@ -536,7 +558,7 @@ def create_default_health_checks(compressor) -> HealthChecker:
                 healthy=False,
                 message=f"Memory check failed: {str(e)}",
                 response_time_ms=0,
-                timestamp=0
+                timestamp=0,
             )
 
     # GPU check (if available)
@@ -549,13 +571,20 @@ def create_default_health_checks(compressor) -> HealthChecker:
                     healthy=True,
                     message="GPU not available (CPU mode)",
                     response_time_ms=0,
-                    timestamp=0
+                    timestamp=0,
                 )
 
             gpu_count = torch.cuda.device_count()
             current_device = torch.cuda.current_device()
-            gpu_memory_used = torch.cuda.memory_allocated(current_device) / 1024 / 1024 / 1024  # GB
-            gpu_memory_total = torch.cuda.get_device_properties(current_device).total_memory / 1024 / 1024 / 1024  # GB
+            gpu_memory_used = (
+                torch.cuda.memory_allocated(current_device) / 1024 / 1024 / 1024
+            )  # GB
+            gpu_memory_total = (
+                torch.cuda.get_device_properties(current_device).total_memory
+                / 1024
+                / 1024
+                / 1024
+            )  # GB
             gpu_memory_percent = (gpu_memory_used / gpu_memory_total) * 100
 
             if gpu_memory_percent > 90:
@@ -572,12 +601,12 @@ def create_default_health_checks(compressor) -> HealthChecker:
                 response_time_ms=0,
                 timestamp=0,
                 details={
-                    'gpu_count': gpu_count,
-                    'current_device': current_device,
-                    'memory_used_gb': gpu_memory_used,
-                    'memory_total_gb': gpu_memory_total,
-                    'memory_percent': gpu_memory_percent
-                }
+                    "gpu_count": gpu_count,
+                    "current_device": current_device,
+                    "memory_used_gb": gpu_memory_used,
+                    "memory_total_gb": gpu_memory_total,
+                    "memory_percent": gpu_memory_percent,
+                },
             )
         except Exception as e:
             return HealthStatus(
@@ -585,7 +614,7 @@ def create_default_health_checks(compressor) -> HealthChecker:
                 healthy=False,
                 message=f"GPU check failed: {str(e)}",
                 response_time_ms=0,
-                timestamp=0
+                timestamp=0,
             )
 
     # Register all checks
@@ -602,18 +631,20 @@ class AlertManager:
     def __init__(self):
         """Initialize alert manager."""
         self.thresholds: dict[str, dict[str, float]] = {
-            'processing_time_ms': {'warning': 5000, 'critical': 15000},
-            'memory_usage_percent': {'warning': 80, 'critical': 90},
-            'error_rate_percent': {'warning': 5, 'critical': 10},
-            'compression_ratio': {'warning': 2, 'critical': 1}  # Too low compression
+            "processing_time_ms": {"warning": 5000, "critical": 15000},
+            "memory_usage_percent": {"warning": 80, "critical": 90},
+            "error_rate_percent": {"warning": 5, "critical": 10},
+            "compression_ratio": {"warning": 2, "critical": 1},  # Too low compression
         }
 
         self.alert_handlers: list[Callable] = []
         self.active_alerts: dict[str, dict[str, Any]] = {}
 
-    def add_alert_handler(self, handler: Callable[[str, str, dict[str, Any]], None]) -> None:
+    def add_alert_handler(
+        self, handler: Callable[[str, str, dict[str, Any]], None]
+    ) -> None:
         """Add alert handler function.
-        
+
         Args:
             handler: Function that handles alerts (metric, level, details)
         """
@@ -621,10 +652,10 @@ class AlertManager:
 
     def check_thresholds(self, metrics: dict[str, float]) -> list[dict[str, Any]]:
         """Check metrics against thresholds and trigger alerts.
-        
+
         Args:
             metrics: Dictionary of metric values
-            
+
         Returns:
             List of triggered alerts
         """
@@ -637,10 +668,10 @@ class AlertManager:
             thresholds = self.thresholds[metric_name]
             alert_level = None
 
-            if value >= thresholds.get('critical', float('inf')):
-                alert_level = 'critical'
-            elif value >= thresholds.get('warning', float('inf')):
-                alert_level = 'warning'
+            if value >= thresholds.get("critical", float("inf")):
+                alert_level = "critical"
+            elif value >= thresholds.get("warning", float("inf")):
+                alert_level = "warning"
 
             if alert_level:
                 alert_key = f"{metric_name}_{alert_level}"
@@ -648,12 +679,12 @@ class AlertManager:
                 # Check if this alert is already active
                 if alert_key not in self.active_alerts:
                     alert = {
-                        'metric': metric_name,
-                        'level': alert_level,
-                        'value': value,
-                        'threshold': thresholds[alert_level],
-                        'timestamp': time.time(),
-                        'message': f"{metric_name} is {value} (threshold: {thresholds[alert_level]})"
+                        "metric": metric_name,
+                        "level": alert_level,
+                        "value": value,
+                        "threshold": thresholds[alert_level],
+                        "timestamp": time.time(),
+                        "message": f"{metric_name} is {value} (threshold: {thresholds[alert_level]})",
                     }
 
                     alerts.append(alert)
@@ -667,7 +698,11 @@ class AlertManager:
                             logger.error(f"Alert handler failed: {e}")
             else:
                 # Clear any existing alerts for this metric
-                keys_to_remove = [k for k in self.active_alerts.keys() if k.startswith(f"{metric_name}_")]
+                keys_to_remove = [
+                    k
+                    for k in self.active_alerts.keys()
+                    if k.startswith(f"{metric_name}_")
+                ]
                 for key in keys_to_remove:
                     del self.active_alerts[key]
 
@@ -676,11 +711,11 @@ class AlertManager:
 
 def log_alert_handler(metric: str, level: str, details: dict[str, Any]) -> None:
     """Default alert handler that logs alerts.
-    
+
     Args:
         metric: Metric name that triggered alert
         level: Alert level (warning, critical)
         details: Alert details
     """
-    logger_level = logging.WARNING if level == 'warning' else logging.ERROR
+    logger_level = logging.WARNING if level == "warning" else logging.ERROR
     logger.log(logger_level, f"ALERT [{level.upper()}] {metric}: {details['message']}")

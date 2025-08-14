@@ -289,6 +289,66 @@ EXCEPTION_REGISTRY = {
 }
 
 
+class EvaluationError(RetrievalFreeError):
+    """Exception raised for evaluation-related errors."""
+
+    def __init__(
+        self,
+        message: str,
+        model_name: str | None = None,
+        metric_name: str | None = None,
+        details: dict[str, Any] | None = None,
+    ):
+        super().__init__(message, details, "EVALUATION_ERROR")
+        self.model_name = model_name
+        self.metric_name = metric_name
+
+        if model_name:
+            self.details["model_name"] = model_name
+        if metric_name:
+            self.details["metric_name"] = metric_name
+
+
+class TrainingError(RetrievalFreeError):
+    """Exception raised for training-related errors."""
+
+    def __init__(
+        self,
+        message: str,
+        epoch: int | None = None,
+        step: int | None = None,
+        details: dict[str, Any] | None = None,
+    ):
+        super().__init__(message, details, "TRAINING_ERROR")
+        self.epoch = epoch
+        self.step = step
+
+        if epoch is not None:
+            self.details["epoch"] = epoch
+        if step is not None:
+            self.details["step"] = step
+
+
+class SecurityError(RetrievalFreeError):
+    """Exception raised for security-related errors."""
+
+    def __init__(
+        self,
+        message: str,
+        threat_type: str | None = None,
+        pattern: str | None = None,
+        details: dict[str, Any] | None = None,
+    ):
+        super().__init__(message, details, "SECURITY_ERROR")
+        self.threat_type = threat_type
+        self.pattern = pattern
+
+        if threat_type:
+            self.details["threat_type"] = threat_type
+        if pattern:
+            self.details["pattern"] = pattern
+
+
 def create_exception(error_code: str, message: str, **kwargs) -> RetrievalFreeError:
     """Create an exception by error code.
 

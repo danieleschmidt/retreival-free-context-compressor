@@ -48,6 +48,17 @@ class MegaToken:
     @property
     def embedding(self):
         """Legacy property for backward compatibility."""
+        return self.vector
+    
+    @property
+    def source_range(self):
+        """Source range from metadata."""
+        return self.metadata.get('source_range', (0, 0))
+    
+    @property 
+    def compression_ratio(self):
+        """Compression ratio from metadata."""
+        return self.metadata.get('compression_ratio', 1.0)
         if HAS_TORCH:
             return torch.tensor(self.vector)
         else:

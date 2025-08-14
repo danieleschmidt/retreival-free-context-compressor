@@ -11,8 +11,18 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any
 
-import psutil
-import torch
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
+
+try:
+    import torch
+    HAS_TORCH = True
+except ImportError:
+    from .mock_torch import torch
+    HAS_TORCH = False
 
 
 logger = logging.getLogger(__name__)

@@ -10,23 +10,30 @@ from typing import Any, List, Dict, Optional, Union
 class MockTensor:
     """Mock tensor class that mimics basic PyTorch tensor functionality."""
     
-    def __init__(self, data):
+    def __init__(self, data, dtype=None, device='cpu'):
         if isinstance(data, np.ndarray):
             self.data = data
         else:
             self.data = np.array(data)
+        self.dtype = dtype or self.data.dtype
+        self.device_name = device
     
     def numpy(self):
         return self.data
     
     def to(self, device):
-        return self
+        new_tensor = MockTensor(self.data, self.dtype, str(device))
+        return new_tensor
     
     def cuda(self):
-        return self
+        return self.to('cuda')
     
     def cpu(self):
-        return self
+        return self.to('cpu')
+    
+    @property
+    def device(self):
+        return MockDevice(self.device_name)
     
     @property
     def shape(self):
@@ -36,6 +43,53 @@ class MockTensor:
         if dim is None:
             return self.shape
         return self.shape[dim]
+    
+    def __len__(self):
+        if len(self.data.shape) == 0:
+            return 1
+        return self.data.shape[0]
+    
+    def detach(self):
+        return MockTensor(self.data.copy(), self.dtype, self.device_name)
+    
+    def item(self):
+        return self.data.item()
+    
+    def __getitem__(self, idx):
+        return MockTensor(self.data[idx], self.dtype, self.device_name)
+    
+    def __float__(self):
+        return float(self.data)
+    
+    def __int__(self):
+        return int(self.data)
+    
+    def __str__(self):
+        return f"MockTensor({self.data})"
+    
+    def __repr__(self):
+        return f"MockTensor({self.data})"
+    
+    def dim(self):
+        return len(self.shape)
+    
+    def numel(self):
+        return self.data.size
+    
+    def unsqueeze(self, dim):
+        new_data = np.expand_dims(self.data, axis=dim)
+        return MockTensor(new_data, self.dtype, self.device_name)
+    
+    def squeeze(self, dim=None):
+        if dim is None:
+            new_data = np.squeeze(self.data)
+        else:
+            new_data = np.squeeze(self.data, axis=dim)
+        return MockTensor(new_data, self.dtype, self.device_name)
+    
+    def flatten(self):
+        new_data = self.data.flatten()
+        return MockTensor(new_data, self.dtype, self.device_name)
 
 
 def tensor(data):
@@ -179,6 +233,103 @@ def randn(*size, dtype=None, device=None):
     """Mock random normal tensor creation."""
     return MockTensor(np.random.randn(*size))
 
+
+def empty(size, dtype=None, device=None):
+    """Mock empty tensor creation."""
+    return MockTensor(np.empty(size))
+
+
+def full(size, fill_value, dtype=None, device=None):
+    """Mock full tensor creation."""
+    return MockTensor(np.full(size, fill_value))
+
+
+def arange(start, end=None, step=1, dtype=None, device=None):
+    """Mock arange tensor creation."""
+    if end is None:
+        end = start
+        start = 0
+    return MockTensor(np.arange(start, end, step))
+
+
+def linspace(start, end, steps, dtype=None, device=None):
+    """Mock linspace tensor creation."""
+    return MockTensor(np.linspace(start, end, steps))
+
+
+def softmax(input_tensor, dim=-1):
+    """Mock softmax function."""
+    data = input_tensor.data if hasattr(input_tensor, 'data') else input_tensor
+    
+    # Subtract max for numerical stability
+    shifted = data - np.max(data, axis=dim, keepdims=True)
+    exp_vals = np.exp(shifted)
+    softmax_vals = exp_vals / np.sum(exp_vals, axis=dim, keepdims=True)
+    
+    return MockTensor(softmax_vals)
+
+
+def mm(input_tensor, mat2):
+    """Mock matrix multiplication."""
+    data1 = input_tensor.data if hasattr(input_tensor, 'data') else input_tensor
+    data2 = mat2.data if hasattr(mat2, 'data') else mat2
+    
+    result = np.matmul(data1, data2)
+    return MockTensor(result)
+
+
+def bmm(input_tensor, mat2):
+    """Mock batch matrix multiplication."""
+    data1 = input_tensor.data if hasattr(input_tensor, 'data') else input_tensor
+    data2 = mat2.data if hasattr(mat2, 'data') else mat2
+    
+    result = np.matmul(data1, data2)
+    return MockTensor(result)
+
+
+# Create a mock torch module object
+class MockTorch:
+    """Mock torch module."""
+    
+    def __init__(self):
+        self.cuda = MockCuda()
+        self.device = device
+        self.tensor = tensor
+        self.Tensor = MockTensor  # Add Tensor class
+        self.stack = stack
+        self.cat = cat
+        self.mean = mean
+        self.sum = sum
+        self.zeros = zeros
+        self.ones = ones
+        self.randn = randn
+        self.empty = empty
+        self.full = full
+        self.arange = arange
+        self.linspace = linspace
+        self.softmax = softmax
+        self.mm = mm
+        self.bmm = bmm
+        self.float32 = np.float32
+        self.float64 = np.float64
+        self.int32 = np.int32
+        self.int64 = np.int64
+        self.no_grad = no_grad
+        self.nn = nn  # Add nn module
+    
+    def is_available(self):
+        return False
+    
+    def save(self, obj, path):
+        """Mock save function."""
+        pass
+    
+    def load(self, path, map_location=None):
+        """Mock load function."""
+        return {}
+
+# Create torch instance
+torch = MockTorch()
 
 # Mock dtype
 float32 = np.float32

@@ -4,10 +4,19 @@ import logging
 import time
 
 import numpy as np
-import torch
-import torch.nn as nn
+
+try:
+    import torch
+    import torch.nn as nn
+    from transformers import AutoModel, AutoTokenizer
+    TORCH_AVAILABLE = True
+except ImportError:
+    from ..mock_torch import torch, nn
+    AutoModel = None
+    AutoTokenizer = None
+    TORCH_AVAILABLE = False
+
 from sklearn.cluster import KMeans
-from transformers import AutoModel, AutoTokenizer
 
 from ..exceptions import (
     CompressionError,
@@ -424,18 +433,27 @@ class ContextCompressor(CompressorBase):
                     elif center.dim() == 0:
                         center = center.unsqueeze(0)
 
+                    # Convert tensor to numpy for MegaToken
+                    if hasattr(center, 'numpy'):
+                        center_np = center.numpy()
+                    elif hasattr(center, 'data'):
+                        center_np = center.data
+                    else:
+                        center_np = np.array(center)
+                    
                     mega_token = MegaToken(
-                        embedding=center,
+                        vector=center_np,
                         metadata={
                             "cluster_id": i,
                             "cluster_size": len(cluster_chunks),
                             "source_chunks": cluster_chunks,
                             "model": self.model_name,
+                            "source_range": source_range,
+                            "compression_ratio": (
+                                len(cluster_chunks) if cluster_chunks else 1.0
+                            ),
                         },
-                        source_range=source_range,
-                        compression_ratio=(
-                            len(cluster_chunks) if cluster_chunks else 1.0
-                        ),
+                        confidence=1.0,
                     )
                     mega_tokens.append(mega_token)
 

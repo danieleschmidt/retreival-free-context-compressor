@@ -535,3 +535,53 @@ def sanitize_filename(filename: str) -> str:
         filename = name[: 250 - len(ext)] + ("." + ext if ext else "")
 
     return filename or "unnamed_file"
+
+
+class ValidationPipeline:
+    """Pipeline for comprehensive input validation."""
+    
+    def __init__(self):
+        """Initialize validation pipeline."""
+        self.input_validator = InputValidator()
+        self.parameter_validator = ParameterValidator()
+        self.logger = logging.getLogger(__name__)
+    
+    def validate(self, inputs: dict[str, Any]) -> ValidationResult:
+        """Run comprehensive validation on inputs.
+        
+        Args:
+            inputs: Dictionary of inputs to validate
+            
+        Returns:
+            Validation result with errors, warnings, and sanitized inputs
+        """
+        errors = []
+        warnings = []
+        sanitized = {}
+        
+        try:
+            # Validate text input if present
+            if "text" in inputs:
+                text_result = self.input_validator.validate_text_input(inputs["text"])
+                if not text_result.is_valid:
+                    errors.extend(text_result.errors)
+                warnings.extend(text_result.warnings)
+                sanitized["text"] = text_result.sanitized_input.get("text", inputs["text"])
+            
+            # Validate parameters
+            param_result = self.parameter_validator.validate_compression_params(inputs)
+            if not param_result.is_valid:
+                errors.extend(param_result.errors)
+            warnings.extend(param_result.warnings)
+            sanitized.update(param_result.sanitized_input)
+            
+        except Exception as e:
+            self.logger.error(f"Validation pipeline error: {e}")
+            errors.append(f"Pipeline validation failed: {e}")
+        
+        return ValidationResult(
+            is_valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings,
+            sanitized_input=sanitized
+        )

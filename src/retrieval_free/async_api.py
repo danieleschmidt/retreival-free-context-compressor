@@ -231,11 +231,7 @@ class AsyncCompressionAPI:
         # Initialize compressor
         if compressor is None:
             from .core import ContextCompressor
-
-            base_compressor = ContextCompressor()
-            self.compressor = HighPerformanceCompressor(
-                base_compressor=base_compressor, max_workers=max_workers
-            )
+            self.compressor = ContextCompressor()
         else:
             self.compressor = compressor
 

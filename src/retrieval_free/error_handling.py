@@ -771,3 +771,33 @@ def get_resilience_status() -> dict[str, Any]:
         "retry_mechanisms": list(_retry_mechanisms.keys()),
         "degradation_handlers": list(_degradation_handlers.keys()),
     }
+
+
+class ErrorHandler:
+    """Central error handling and recovery coordination."""
+    
+    def __init__(self):
+        """Initialize error handler."""
+        self.circuit_breakers = _circuit_breakers
+        self.resource_manager = get_resource_manager()
+        self.logger = logging.getLogger(__name__)
+    
+    def handle_error(self, error: Exception, context: str = "unknown") -> None:
+        """Handle and log error with appropriate recovery actions.
+        
+        Args:
+            error: The exception that occurred
+            context: Context where error occurred
+        """
+        self.logger.error(f"Error in {context}: {error}", exc_info=True)
+        
+        # Trigger appropriate recovery mechanisms
+        if isinstance(error, MemoryError):
+            self.resource_manager.cleanup_resources()
+        elif isinstance(error, ConnectionError):
+            # Circuit breaker will handle connection issues
+            pass
+    
+    def get_status(self) -> dict:
+        """Get comprehensive error handling status."""
+        return get_resilience_status()

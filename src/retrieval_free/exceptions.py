@@ -368,3 +368,49 @@ def create_exception(error_code: str, message: str, **kwargs) -> RetrievalFreeEr
 
     exception_class = EXCEPTION_REGISTRY[error_code]
     return exception_class(message, **kwargs)
+
+
+class ScalingError(RetrievalFreeError):
+    """Exception raised when scaling operations fail."""
+
+    def __init__(
+        self,
+        message: str,
+        scaling_target: str | None = None,
+        resource_type: str | None = None,
+        **kwargs,
+    ):
+        """Initialize scaling error.
+
+        Args:
+            message: Error message
+            scaling_target: What was being scaled
+            resource_type: Type of resource involved
+            **kwargs: Additional arguments
+        """
+        super().__init__(message, **kwargs)
+        self.scaling_target = scaling_target
+        self.resource_type = resource_type
+
+
+class DeploymentError(RetrievalFreeError):
+    """Exception raised when deployment operations fail."""
+
+    def __init__(
+        self,
+        message: str,
+        deployment_target: str | None = None,
+        region: str | None = None,
+        **kwargs,
+    ):
+        """Initialize deployment error.
+
+        Args:
+            message: Error message
+            deployment_target: What was being deployed
+            region: Target region
+            **kwargs: Additional arguments
+        """
+        super().__init__(message, **kwargs)
+        self.deployment_target = deployment_target
+        self.region = region

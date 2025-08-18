@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
-from typing import Any
+from typing import Any, Tuple
 
 
 logger = logging.getLogger(__name__)
@@ -1019,3 +1019,46 @@ def get_input_sanitizer() -> EnhancedInputSanitizer:
     if _input_sanitizer is None:
         _input_sanitizer = EnhancedInputSanitizer()
     return _input_sanitizer
+
+
+class SecurityValidator:
+    """Central security validation and monitoring."""
+    
+    def __init__(self):
+        """Initialize security validator."""
+        self.model_validator = ModelSecurityValidator()
+        self.input_sanitizer = get_input_sanitizer()
+        self.logger = logging.getLogger(__name__)
+    
+    def validate_input(self, input_data: str) -> Tuple[bool, str]:
+        """Validate input for security threats.
+        
+        Args:
+            input_data: Input to validate
+            
+        Returns:
+            Tuple of (is_safe, sanitized_input)
+        """
+        try:
+            result = self.input_sanitizer.sanitize_input(input_data)
+            sanitized = result.get("sanitized_text", input_data)
+            return True, sanitized
+        except Exception as e:
+            self.logger.error(f"Security validation failed: {e}")
+            return False, ""
+    
+    def validate_model(self, model_path: str) -> bool:
+        """Validate model security.
+        
+        Args:
+            model_path: Path to model
+            
+        Returns:
+            True if model is safe
+        """
+        try:
+            scan_result = self.model_validator.validate_model_source(model_path)
+            return len(scan_result.vulnerabilities) == 0
+        except Exception as e:
+            self.logger.error(f"Model validation failed: {e}")
+            return False

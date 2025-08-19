@@ -1,0 +1,47 @@
+groups:
+  - name: compression_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(compression_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors/second for 2 minutes"
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, compression_request_duration_seconds_bucket) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "P95 response time is {{ $value }}s"
+
+      - alert: LowCompressionRatio
+        expr: compression_ratio_achieved < 4.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Compression ratio below threshold"
+          description: "Compression ratio is {{ $value }}x (target: 8x+)"
+
+      - alert: ServiceDown
+        expr: up{job="compression-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Compression service is down"
+          description: "Service has been down for more than 1 minute"
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / 1024 / 1024 > 3000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}MB (limit: 4GB)"

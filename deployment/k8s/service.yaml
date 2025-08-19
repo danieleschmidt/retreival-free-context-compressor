@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: compression-service
+  namespace: compression-service
+  labels:
+    app: compression-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: compression-service
+---

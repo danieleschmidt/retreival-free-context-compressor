@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: compression-config
+  namespace: compression-service
+data:
+  config.yaml: |
+    algorithms:
+      causal_compression:
+        enabled: true
+        compression_ratio: 16
+        batch_size: 8
+      neuromorphic_compression:
+        enabled: true
+        compression_ratio: 12
+        spike_threshold: 0.5
+        energy_efficiency_target: 0.9
+      quantum_bottleneck:
+        enabled: true
+        n_qubits: 8
+        n_layers: 3
+        optimization_target: "information_bottleneck"
+      federated_compression:
+        enabled: true
+        privacy_budget: 1.0
+        n_clients_max: 10
+      neural_architecture_search:
+        enabled: true
+        population_size: 50
+        generations: 20
+    performance:
+      max_context_length: 256000
+      response_timeout_ms: 30000
+      memory_limit_gb: 8
+    security:
+      api_rate_limit: 1000
+      auth_required: true
+---

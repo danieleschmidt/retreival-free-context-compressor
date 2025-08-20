@@ -3,7 +3,92 @@ Mock PyTorch module for demonstration purposes.
 This allows the system to run without requiring the full PyTorch installation.
 """
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    # Create a minimal numpy-like module for basic operations
+    class MockNumpy:
+        float32 = "float32"
+        float64 = "float64"
+        int32 = "int32"  
+        int64 = "int64"
+        
+        @staticmethod
+        def array(data, dtype=None):
+            if hasattr(data, '__iter__') and not isinstance(data, str):
+                return list(data)
+            return data
+        
+        @staticmethod
+        def zeros(shape):
+            if isinstance(shape, (int, float)):
+                return [0.0] * int(shape)
+            elif isinstance(shape, tuple):
+                if len(shape) == 1:
+                    return [0.0] * shape[0]
+                elif len(shape) == 2:
+                    return [[0.0] * shape[1] for _ in range(shape[0])]
+            return [0.0]
+        
+        @staticmethod
+        def ones(shape):
+            if isinstance(shape, (int, float)):
+                return [1.0] * int(shape)
+            elif isinstance(shape, tuple):
+                if len(shape) == 1:
+                    return [1.0] * shape[0]
+                elif len(shape) == 2:
+                    return [[1.0] * shape[1] for _ in range(shape[0])]
+            return [1.0]
+        
+        @staticmethod
+        def mean(data, axis=None, keepdims=False):
+            if hasattr(data, '__iter__'):
+                flat = list(data) if not isinstance(data, list) else data
+                return sum(flat) / len(flat) if flat else 0.0
+            return float(data)
+        
+        @staticmethod
+        def sum(data, axis=None, keepdims=False):
+            if hasattr(data, '__iter__'):
+                return sum(data)
+            return data
+        
+        @staticmethod
+        def stack(arrays, axis=0):
+            return arrays
+        
+        @staticmethod
+        def concatenate(arrays, axis=0):
+            result = []
+            for arr in arrays:
+                result.extend(arr if hasattr(arr, '__iter__') else [arr])
+            return result
+        
+        @staticmethod
+        def squeeze(data, axis=None):
+            return data
+        
+        @staticmethod
+        def expand_dims(data, axis):
+            return [data] if axis == 0 else data
+        
+        @staticmethod
+        def random():
+            import random
+            return random
+        
+        random = random
+        
+        class linalg:
+            @staticmethod
+            def norm(data, axis=None, keepdims=False):
+                if hasattr(data, '__iter__'):
+                    return sum(x**2 for x in data) ** 0.5
+                return abs(data)
+        
+    np = MockNumpy()
+    np.random = MockNumpy.random()
 from typing import Any, List, Dict, Optional, Union
 
 

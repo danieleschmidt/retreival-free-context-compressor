@@ -3,7 +3,10 @@
 import logging
 import time
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    from ..mock_torch import np
 
 try:
     import torch

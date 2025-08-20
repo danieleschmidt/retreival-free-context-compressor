@@ -370,6 +370,11 @@ def create_exception(error_code: str, message: str, **kwargs) -> RetrievalFreeEr
     return exception_class(message, **kwargs)
 
 
+def get_error_code(exception: RetrievalFreeError) -> str:
+    """Get error code for exception."""
+    return exception.error_code or "UNKNOWN_ERROR"
+
+
 class ScalingError(RetrievalFreeError):
     """Exception raised when scaling operations fail."""
 

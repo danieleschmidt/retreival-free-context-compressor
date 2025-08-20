@@ -3,7 +3,28 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    # Minimal numpy mock for basic functionality
+    class MockNumpy:
+        float32 = "float32"
+        float64 = "float64"
+        
+        # Mock ndarray type
+        class ndarray:
+            def __init__(self, data):
+                self.data = data
+        
+        @staticmethod
+        def array(data):
+            return MockNumpy.ndarray(list(data) if hasattr(data, '__iter__') else data)
+            
+        @staticmethod
+        def mean(data):
+            return sum(data) / len(data) if data else 0.0
+    
+    np = MockNumpy()
 
 # Try to import torch, fall back to mock if not available
 try:

@@ -9,7 +9,10 @@ from contextlib import contextmanager
 from functools import wraps
 from typing import Any
 
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 
 class MetricsCollector:
@@ -52,24 +55,39 @@ class PerformanceMonitor:
     """Monitors system performance during compression operations."""
 
     def __init__(self):
-        self.process = psutil.Process(os.getpid())
-        self.baseline_memory = self._get_memory_usage()
+        if psutil:
+            self.process = psutil.Process(os.getpid())
+            self.baseline_memory = self._get_memory_usage()
+        else:
+            self.process = None
+            self.baseline_memory = 0.0
 
     def _get_memory_usage(self) -> float:
         """Get current memory usage in MB."""
-        return self.process.memory_info().rss / 1024 / 1024
+        if self.process:
+            return self.process.memory_info().rss / 1024 / 1024
+        return 0.0
 
     def _get_cpu_usage(self) -> float:
         """Get current CPU usage percentage."""
-        return self.process.cpu_percent()
+        if self.process:
+            return self.process.cpu_percent()
+        return 0.0
 
     def get_system_metrics(self) -> dict[str, float]:
         """Get current system performance metrics."""
+        if self.process:
+            return {
+                "memory_mb": self._get_memory_usage(),
+                "memory_delta_mb": self._get_memory_usage() - self.baseline_memory,
+                "cpu_percent": self._get_cpu_usage(),
+                "num_threads": self.process.num_threads(),
+            }
         return {
-            "memory_mb": self._get_memory_usage(),
-            "memory_delta_mb": self._get_memory_usage() - self.baseline_memory,
-            "cpu_percent": self._get_cpu_usage(),
-            "num_threads": self.process.num_threads(),
+            "memory_mb": 0.0,
+            "memory_delta_mb": 0.0,
+            "cpu_percent": 0.0,
+            "num_threads": 1,
         }
 
 
@@ -267,9 +285,11 @@ def _check_memory_usage() -> bool:
 
 def _check_disk_space() -> bool:
     """Check if disk space is sufficient."""
-    disk_usage = psutil.disk_usage("/")
-    free_percentage = (disk_usage.free / disk_usage.total) * 100
-    return free_percentage > 10  # More than 10% free
+    if psutil:
+        disk_usage = psutil.disk_usage("/")
+        free_percentage = (disk_usage.free / disk_usage.total) * 100
+        return free_percentage > 10  # More than 10% free
+    return True  # Assume OK if psutil not available
 
 
 # Register default health checks

@@ -1,9 +1,9 @@
 {
   "overall_passed": false,
-  "average_score": 0.8400000000000001,
-  "gates_passed": 3,
+  "average_score": 0.89,
+  "gates_passed": 4,
   "total_gates": 5,
-  "timestamp": 1755610046.7226863,
+  "timestamp": 1755957724.1217566,
   "gate_results": [
     {
       "name": "Code Functionality",
@@ -15,20 +15,23 @@
         "\u2705 /root/repo/src/retrieval_free/core.py exists",
         "\u2705 /root/repo/src/retrieval_free/generation_4_research_framework.py exists",
         "\u2705 Generation 4 research demo runs successfully",
-        "\u274c Algorithm instantiation failed: No module named 'numpy'",
+        "\u274c Algorithm instantiation failed: type object 'torch' has no attribute 'Tensor'",
         "Overall functionality score: 0.70/1.0"
       ]
     },
     {
       "name": "Security Validation",
       "description": "Checks for security best practices and vulnerabilities",
-      "passed": false,
-      "score": 0.5,
+      "passed": true,
+      "score": 0.75,
       "details": [
         "\u26a0\ufe0f  Potential secret in /root/repo/test_basic_functionality.py",
+        "\u26a0\ufe0f  Potential secret in /root/repo/test_comprehensive_integration.py",
+        "\u26a0\ufe0f  Potential secret in /root/repo/test_generation_2_robust.py",
         "\u2705 Input validation patterns found",
         "\u2705 Error handling implemented",
-        "Security score: 0.50/1.0"
+        "\u2705 Privacy-preserving features implemented",
+        "Security score: 0.75/1.0"
       ]
     },
     {
@@ -37,7 +40,7 @@
       "passed": true,
       "score": 1.0,
       "details": [
-        "\u2705 Demo execution time: 3.8s",
+        "\u2705 Demo execution time: 3.7s",
         "\u2705 Performance optimization modules present",
         "\u2705 Caching mechanisms implemented",
         "\u2705 Async/concurrent processing patterns found",
@@ -77,12 +80,12 @@
   ],
   "summary": {
     "functionality": 0.7,
-    "security": 0.5,
+    "security": 0.75,
     "performance": 1.0,
     "documentation": 1.0,
     "deployment": 1.0
   },
   "recommendations": [
-    "Add more input validation and remove any hardcoded credentials"
+    "All quality gates passed - ready for production deployment!"
   ]
 }

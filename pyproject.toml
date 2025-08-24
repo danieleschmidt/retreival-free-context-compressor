@@ -98,7 +98,8 @@ addopts = [
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
-    "gpu: marks tests that require GPU"
+    "gpu: marks tests that require GPU",
+    "asyncio: marks tests as async tests"
 ]
 
 [tool.black]

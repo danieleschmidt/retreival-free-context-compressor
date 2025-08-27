@@ -2,84 +2,44 @@
 
 ## Supported Versions
 
-We release patches for security vulnerabilities for the following versions:
-
 | Version | Supported          |
 | ------- | ------------------ |
 | 0.1.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
-We take security seriously. If you discover a security vulnerability, please follow these steps:
+Please report security vulnerabilities by emailing security@example.com.
 
-### 1. Do Not Create Public Issues
-Please do not report security vulnerabilities through public GitHub issues.
+### Security Measures Implemented
 
-### 2. Private Reporting
-Send details to **retrieval-free-security@yourdomain.com** including:
+1. **Input Validation**: All user inputs are validated and sanitized
+2. **Secure Configuration**: Environment variables used for sensitive data
+3. **Safe Serialization**: Avoided unsafe pickle, use JSON where possible
+4. **Cryptographic Security**: Use of secrets module for random generation
+5. **Shell Safety**: Subprocess calls use proper argument escaping
+6. **Logging Security**: Sensitive data excluded from logs
 
-- Description of the vulnerability
-- Steps to reproduce the issue
-- Potential impact assessment
-- Suggested fix (if available)
+### Security Best Practices
 
-### 3. Response Timeline
-- **Initial Response**: Within 48 hours
-- **Status Update**: Within 7 days
-- **Fix Timeline**: Critical issues within 30 days
+- Never commit secrets to version control
+- Use environment variables for configuration
+- Validate all inputs before processing
+- Use parameterized queries for database operations
+- Implement proper error handling without information leakage
+- Use secure random number generation for cryptographic purposes
 
-### 4. Disclosure Policy
-- We will acknowledge receipt of your vulnerability report
-- We will confirm the vulnerability and determine affected versions
-- We will release fixes and coordinate disclosure timing with you
-- We will credit you in the security advisory (unless you prefer anonymity)
+### Security Scanning
 
-## Security Best Practices
+Run security scans regularly:
 
-### For Users
-- Keep dependencies updated to latest secure versions
-- Use virtual environments to isolate package dependencies
-- Validate and sanitize all input data before processing
-- Monitor for security advisories on dependencies
+```bash
+python generation_12_security_hardening.py
+```
 
-### For Contributors
-- Follow secure coding practices
-- Never commit secrets, API keys, or credentials
-- Use dependency scanning tools
-- Run security tests before submitting PRs
+### Incident Response
 
-## Security Measures
-
-### Automated Security
-- **Dependency scanning** with Dependabot
-- **Code scanning** with CodeQL
-- **Secret scanning** for accidental commits
-- **SBOM generation** for transparency
-
-### Manual Security Reviews
-- Security review for all major releases
-- Penetration testing for critical components
-- Third-party security audits (planned for v1.0)
-
-## Vulnerability Disclosure Examples
-
-### What to Report
-- Code injection vulnerabilities
-- Authentication/authorization bypasses
-- Data exposure issues
-- Dependency vulnerabilities with exploits
-- Cryptographic implementation flaws
-
-### What Not to Report
-- Issues requiring physical access to user devices
-- Social engineering attacks
-- Denial of Service attacks requiring excessive resources
-- Issues in third-party dependencies without proof of exploitability
-
-## Contact
-
-- **Security Email**: retrieval-free-security@yourdomain.com
-- **General Contact**: retrieval-free@yourdomain.com
-- **GPG Key**: Available upon request
-
-Thank you for helping keep our project and users secure!
+1. Isolate affected systems
+2. Assess impact and scope
+3. Apply patches or mitigations
+4. Monitor for ongoing threats
+5. Document lessons learned

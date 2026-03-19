@@ -1,445 +1,158 @@
 # Retrieval-Free Context Compressor
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch 2.3+](https://img.shields.io/badge/PyTorch-2.3+-ee4c2c.svg)](https://pytorch.org/)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Paper](https://img.shields.io/badge/Paper-ACL%202025-red.svg)](https://aclanthology.org/2025)
-[![Compression](https://img.shields.io/badge/Compression-8x+-green.svg)](https://github.com/danieleschmidt/retrieval-free-context-compressor)
+A hierarchical context compression pipeline that converts long documents into dense **mega-tokens** — fixed-size embedding vectors that preserve semantic content for cross-document inference, without any retrieval step at query time.
 
-A transformer plug-in that compresses long documents into dense "mega-tokens," enabling 256k-token context without external RAG. First implementation of ACL-25's breakthrough compression objective.
+## Motivation
 
-## 🎯 Overview
+Large language models have finite context windows. RAG (Retrieval-Augmented Generation) works around this by fetching relevant chunks at query time, but it adds latency, requires an index, and can miss cross-document dependencies. This library takes a different approach:
 
-As Llama-4-MoE natively handles 128k tokens, the bottleneck shifts from context length to efficiency. This toolkit implements the ACL-25 "Efficient Long-Context Retrieval via Compression" paper, achieving:
+> **Compress everything upfront.** Encode each document chunk into a compact mega-token vector. At query time, fuse the relevant mega-tokens using cross-attention — no retrieval index needed.
 
-- **8× compression** while improving answer F1 scores
-- **No retrieval needed** - everything stays in context
-- **Plug-and-play** with any transformer model
-- **Autopruning** of obsolete information
-- **Streaming compression** for infinite contexts
+This makes it a natural complement to graph-based reasoning systems (e.g., DocGraph) where documents are already structured as a graph and you want to reason over *all* nodes without re-reading raw text.
 
-## ⚡ Performance
+## Architecture
 
-| Model | Context Length | Compression | F1 Score | Latency | Memory |
-|-------|----------------|-------------|----------|---------|---------|
-| Llama-3 + RAG | 4k | N/A | 72.3% | 1,240ms | 8.2GB |
-| Llama-3 + Ours | 256k | 8.2× | 78.9% | 487ms | 7.1GB |
-| GPT-4 + RAG | 8k | N/A | 81.2% | 2,100ms | 15.3GB |
-| GPT-4 + Ours | 512k | 9.7× | 84.7% | 892ms | 12.8GB |
-
-*Benchmarked on Natural Questions with full Wikipedia context*
-
-## 📋 Requirements
-
-```bash
-# Core dependencies
-python>=3.10
-torch>=2.3.0
-transformers>=4.40.0
-einops>=0.7.0
-flash-attn>=2.5.0
-
-# Compression algorithms
-scikit-learn>=1.3.0
-faiss-gpu>=1.7.4
-sentence-transformers>=3.0.0
-
-# Evaluation
-datasets>=2.19.0
-rouge-score>=0.1.2
-bert-score>=0.3.13
-
-# Optimization
-apex>=0.1
-deepspeed>=0.14.0
-bitsandbytes>=0.43.0
+```
+Documents
+   │
+   ▼
+┌──────────────────────┐
+│  WordTokenizer        │  character-clean word-level tokenisation
+│  HierarchicalEncoder  │  Transformer (2L × 4H) + bottleneck projection
+└──────────────────────┘
+   │
+   ▼  mega-tokens (N × D vectors, D=64 by default)
+   │
+┌──────────────────────┐
+│ CrossDocumentReasoner │  query-guided cross-attention over mega-tokens
+└──────────────────────┘
+   │
+   ▼  fused representation + ranked chunk list
 ```
 
-## 🛠️ Installation
+Key design choices:
+- **Offline-first** — no external model downloads required; vocabulary is built from input data
+- **Pure PyTorch** — no `sentence-transformers`, no `torch_geometric`, no external APIs
+- **Fixed output size** — mega-token dimension is a hyperparameter (default 64); output is always the same shape regardless of input length
+- **L2-normalised vectors** — cosine similarity works directly via dot product
+
+## Install
 
 ```bash
-# Clone repository
-git clone https://github.com/danieleschmidt/retrieval-free-context-compressor.git
-cd retrieval-free-context-compressor
-
-# Install package
 pip install -e .
-
-# Download pretrained compressors
-python scripts/download_models.py --model base-8x
-
-# Run tests
-pytest tests/
 ```
 
-## 🚀 Quick Start
+Requires Python ≥ 3.10 and PyTorch ≥ 2.0.
 
-### Basic Usage
+## Quick Start
 
 ```python
-from retrieval_free import ContextCompressor, AutoCompressor
+from rfcc import MegaTokenCompressor, CrossDocumentReasoner
 
-# Load pretrained compressor
-compressor = AutoCompressor.from_pretrained("rfcc-base-8x")
+# 1. Compress documents → mega-tokens
+compressor = MegaTokenCompressor(mega_dim=64)
+chunks = [
+    "Knowledge graphs represent entities and relationships in a structured graph.",
+    "Context compression reduces long documents to compact dense vectors.",
+    "Self-attention allows each token to attend to all other positions.",
+]
+mega_tokens = compressor.compress(chunks)
 
-# Compress long document
-long_document = "..." * 100000  # 100k tokens
-mega_tokens = compressor.compress(long_document)
+print(mega_tokens[0])
+# MegaToken(chunk=0, dim=64, text='Knowledge graphs represent entiti'...)
 
-print(f"Original tokens: {compressor.count_tokens(long_document)}")
-print(f"Compressed to: {len(mega_tokens)} mega-tokens")
-print(f"Compression ratio: {compressor.get_compression_ratio():.1f}×")
+# 2. Cross-document similarity
+sim = compressor.similarity_matrix(mega_tokens)
+print(sim.round(3))
 
-# Use with any LLM
-from transformers import AutoModelForCausalLM
-
-model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3-70b")
-response = model.generate(
-    prompt="What is the main theme of this document?",
-    context=mega_tokens,  # Compressed context
-    max_new_tokens=200
-)
+# 3. Reason over mega-tokens with a query
+reasoner = CrossDocumentReasoner(mega_dim=64)
+result = reasoner.reason(mega_tokens, query="How are knowledge graphs structured?")
+for rank, (idx, weight, text) in enumerate(result.top_k(2), 1):
+    print(f"#{rank} [doc {idx}] w={weight:.3f} — {text[:60]}")
 ```
 
-### Streaming Compression
-
-```python
-from retrieval_free import StreamingCompressor
-
-# For continuous/infinite contexts
-compressor = StreamingCompressor(
-    model="rfcc-streaming",
-    window_size=32000,
-    compression_ratio=8.0,
-    prune_threshold=0.1
-)
-
-# Process streaming data
-for chunk in data_stream:
-    mega_tokens = compressor.add_chunk(chunk)
-    
-    # Automatically prunes old/irrelevant information
-    if compressor.should_prune():
-        compressor.prune_obsolete()
-    
-    # Query at any time
-    if user_question:
-        answer = model.answer(user_question, context=mega_tokens)
-```
-
-## 🏗️ Architecture
-
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│ Input Document  │────▶│ Semantic Encoder │────▶│ Bottleneck      │
-│  (256k tokens)  │     │   (Hierarchical) │     │  (8k states)    │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-                                                          │
-                                                          ▼
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   LLM Query     │────▶│ Cross-Attention  │────▶│  Generated      │
-│                 │     │  to Mega-Tokens  │     │   Answer        │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-```
-
-### Key Innovations
-
-1. **Hierarchical Encoding**: Multi-scale compression from tokens → sentences → paragraphs → mega-tokens
-2. **Information Bottleneck**: Learnable compression that preserves task-relevant information
-3. **Dynamic Routing**: Attention mechanism that finds relevant mega-tokens at inference
-4. **Obsolescence Detection**: Identifies and prunes outdated information automatically
-
-## 🔧 Training Your Own Compressor
-
-### Prepare Training Data
-
-```python
-from retrieval_free.data import CompressionDataset
-
-# Create dataset with compression targets
-dataset = CompressionDataset.from_documents(
-    documents="path/to/documents",
-    questions="path/to/questions",
-    answers="path/to/answers",
-    compression_ratio=8.0
-)
-
-# Add augmentation
-dataset = dataset.with_augmentation(
-    noise_ratio=0.1,
-    paraphrase_prob=0.3,
-    shuffle_sentences=True
-)
-```
-
-### Train Compressor
-
-```python
-from retrieval_free.training import CompressionTrainer
-
-trainer = CompressionTrainer(
-    model_name="t5-base",
-    compression_objective="info_bottleneck",
-    auxiliary_objectives=["reconstruction", "question_answering"]
-)
-
-# Train with multiple objectives
-trainer.train(
-    train_dataset=dataset,
-    eval_dataset=eval_dataset,
-    epochs=10,
-    batch_size=8,
-    learning_rate=1e-4,
-    warmup_steps=1000
-)
-
-# Save trained compressor
-trainer.save_pretrained("my-compressor-8x")
-```
-
-## 📊 Evaluation
-
-### Benchmark Suite
+## Demo
 
 ```bash
-# Run comprehensive evaluation
-python evaluate.py \
-    --model rfcc-base-8x \
-    --benchmarks nq,triviaqa,msmarco,hotpotqa \
-    --metrics f1,compression,latency,memory
-
-# Compare with baselines
-python compare_baselines.py \
-    --models rfcc-8x,rag,full-context \
-    --output results/comparison.html
+python demo.py
 ```
 
-### Custom Evaluation
+Expected output: similarity matrix over 5 sample documents + query-guided rankings.
 
-```python
-from retrieval_free.evaluation import CompressionEvaluator
+## API Reference
 
-evaluator = CompressionEvaluator()
+### `MegaTokenCompressor`
 
-# Evaluate compression quality
-results = evaluator.evaluate(
-    compressor=compressor,
-    test_documents=test_docs,
-    test_questions=test_questions,
-    metrics=["answer_f1", "compression_ratio", "info_retention"]
-)
+| Parameter   | Default | Description                          |
+|-------------|---------|--------------------------------------|
+| `mega_dim`  | 64      | Output vector dimension              |
+| `d_model`   | 128     | Internal Transformer dimension       |
+| `n_heads`   | 4       | Attention heads                      |
+| `n_layers`  | 2       | Transformer encoder layers           |
+| `max_seq_len`| 256    | Max tokens per chunk (truncated)     |
+| `normalize` | True    | L2-normalise output vectors          |
+| `device`    | auto    | `'cpu'` or `'cuda'`                 |
 
-# Analyze what gets compressed
-analysis = evaluator.analyze_compression(
-    document=sample_doc,
-    show_heatmap=True,
-    export_path="compression_analysis.html"
-)
+**Methods:**
+- `compress(chunks, batch_size=32) → List[MegaToken]`
+- `similarity_matrix(mega_tokens) → np.ndarray`  shape `(N, N)`
+
+### `MegaToken`
+
+| Attribute      | Type           | Description               |
+|----------------|----------------|---------------------------|
+| `vector`       | `np.ndarray`   | shape `(mega_dim,)`       |
+| `source_text`  | `str`          | original chunk text       |
+| `chunk_index`  | `int`          | position in input list    |
+| `metadata`     | `dict`         | free-form extra info      |
+
+**Methods:**
+- `similarity(other: MegaToken) → float`  cosine similarity
+
+### `CrossDocumentReasoner`
+
+| Parameter   | Default | Description                       |
+|-------------|---------|-----------------------------------|
+| `mega_dim`  | 64      | Must match compressor's mega_dim  |
+| `hidden_dim`| 128     | Cross-attention projection size   |
+| `device`    | auto    | `'cpu'` or `'cuda'`              |
+
+**Methods:**
+- `reason(mega_tokens, query=None) → ReasoningResult`
+- `similarity(a, b) → float`
+
+### `ReasoningResult`
+
+| Attribute          | Type                          | Description                      |
+|--------------------|-------------------------------|----------------------------------|
+| `fused_vector`     | `np.ndarray` `(mega_dim,)`   | Weighted sum of mega-token values|
+| `attention_weights`| `np.ndarray` `(N,)`          | Softmax weights per mega-token   |
+| `ranked_chunks`    | `List[(idx, weight, text)]`  | Sorted by descending weight      |
+| `query`            | `str or None`                | The query used                   |
+
+**Methods:**
+- `top_k(k=3) → List[(idx, weight, text)]`
+
+## Tests
+
+```bash
+pytest tests/ -v
 ```
 
-## 🚄 Advanced Features
+34 tests, all passing.
 
-### Selective Compression
+## Connection to DocGraph
 
-```python
-from retrieval_free import SelectiveCompressor
+This library is designed as a companion to graph-based document reasoning (DocGraph). In that setting:
 
-# Compress different parts differently
-compressor = SelectiveCompressor(
-    rules={
-        "legal_text": 4.0,      # Less compression for legal
-        "general": 8.0,         # Standard compression
-        "repetitive": 16.0,     # High compression for redundant
-    }
-)
+- Each graph **node** (paper/section/claim) becomes a set of text chunks
+- Chunks are compressed to **mega-tokens** and stored on the node
+- At query time, the **CrossDocumentReasoner** fuses mega-tokens from relevant nodes without re-reading raw text
+- The fused vector can be passed to a downstream LLM or classifier
 
-# Automatically detects content type
-compressed = compressor.compress_smart(document)
-```
+This decouples the graph traversal (which nodes are relevant?) from the language reasoning (what do those nodes say?).
 
-### Multi-Document Compression
+## License
 
-```python
-from retrieval_free import MultiDocCompressor
-
-# Compress multiple related documents
-compressor = MultiDocCompressor(
-    deduplication=True,
-    cross_doc_attention=True
-)
-
-# Compress entire knowledge base
-documents = load_wikipedia_subset()
-mega_kb = compressor.compress_collection(
-    documents,
-    preserve_citations=True,
-    create_index=True
-)
-
-# Efficient multi-hop reasoning
-answer = model.multihop_qa(
-    question="What connects Einstein to modern GPS?",
-    knowledge_base=mega_kb
-)
-```
-
-### Compression Explanations
-
-```python
-# Understand what was compressed
-explanation = compressor.explain_compression(
-    original=document,
-    compressed=mega_tokens,
-    query="machine learning"
-)
-
-print("Retained sections:", explanation.retained_sections)
-print("Compressed sections:", explanation.compressed_sections)
-print("Information loss:", explanation.estimated_info_loss)
-
-# Visualize compression
-explanation.visualize("compression_map.html")
-```
-
-## 🔄 Integration Examples
-
-### Hugging Face Transformers
-
-```python
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from retrieval_free import CompressorPlugin
-
-# Add compression to any model
-model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3-70b")
-tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3-70b")
-
-# Wrap with compressor
-compressed_model = CompressorPlugin(
-    model=model,
-    tokenizer=tokenizer,
-    compressor="rfcc-base-8x"
-)
-
-# Use normally - compression happens automatically
-output = compressed_model.generate(
-    "Summarize this document: " + very_long_document,
-    max_new_tokens=500
-)
-```
-
-### LangChain Integration
-
-```python
-from langchain.llms import HuggingFaceLLM
-from retrieval_free.langchain import CompressionChain
-
-# Create compression chain
-compression_chain = CompressionChain(
-    compressor="rfcc-base-8x",
-    llm=HuggingFaceLLM(model_name="gpt-4"),
-    compression_threshold=10000  # Compress if >10k tokens
-)
-
-# Process long documents automatically
-result = compression_chain.run(
-    document=long_document,
-    question="What are the key findings?"
-)
-```
-
-## 🧪 Ablation Studies
-
-```python
-from retrieval_free.ablation import AblationRunner
-
-# Test different components
-runner = AblationRunner()
-
-results = runner.run_ablations(
-    base_model="rfcc-base-8x",
-    ablations=[
-        "no_hierarchical",
-        "no_autopruning", 
-        "no_info_bottleneck",
-        "fixed_compression_ratio"
-    ],
-    test_set="natural_questions"
-)
-
-runner.plot_ablation_results("ablation_study.png")
-```
-
-## 📈 Scaling Laws
-
-```python
-# Study compression-performance tradeoffs
-from retrieval_free.scaling import ScalingAnalyzer
-
-analyzer = ScalingAnalyzer()
-
-# Test different compression ratios
-results = analyzer.analyze_scaling(
-    compression_ratios=[2, 4, 8, 16, 32],
-    model_sizes=["base", "large", "xl"],
-    context_lengths=[32k, 64k, 128k, 256k]
-)
-
-# Find optimal compression for your use case
-optimal = analyzer.recommend_compression(
-    target_latency_ms=500,
-    min_f1_score=0.75
-)
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Priority areas:
-- New compression objectives
-- Multilingual support
-- Multimodal compression
-- Faster inference methods
-- Integration examples
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## 📄 Citation
-
-```bibtex
-@inproceedings{retrieval_free_compression_2025,
-  title={Efficient Long-Context Retrieval via Compression},
-  author={ACL Authors},
-  booktitle={ACL},
-  year={2025}
-}
-
-@software{retrieval_free_context_compressor,
-  title={Retrieval-Free Context Compressor: 256k Tokens Without RAG},
-  author={Daniel Schmidt},
-  year={2025},
-  url={https://github.com/danieleschmidt/retrieval-free-context-compressor}
-}
-```
-
-## 🏆 Acknowledgments
-
-- Authors of the ACL-25 compression paper
-- The Flash Attention team
-- Open-source LLM community
-
-## 📝 License
-
-Apache License 2.0 - See [LICENSE](LICENSE) for details.
-
-## 🔗 Resources
-
-- [Documentation](https://retrieval-free.readthedocs.io)
-- [Model Hub](https://huggingface.co/retrieval-free)
-- [Benchmark Results](https://retrieval-free.github.io/benchmarks)
-- [Video Tutorial](https://youtube.com/retrieval-free-compression)
-- [Discord Community](https://discord.gg/retrieval-free)
-
-## 📧 Contact
-
-- **GitHub Issues**: Bug reports and features
-- **Email**: retrieval-free@yourdomain.com
-- **Twitter**: [@RetrievalFree](https://twitter.com/retrievalfree)
+MIT

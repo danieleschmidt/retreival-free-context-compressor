@@ -1,1 +1,0 @@
-"""Integration tests for retrieval-free context compressor."""

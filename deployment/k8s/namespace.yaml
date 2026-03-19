@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: compression-service
-  labels:
-    app: retrieval-free-compression
-    environment: production
----
